@@ -42,6 +42,7 @@ func Execute() {
 		newInitCmd(),
 		newCloneCmd(),
 		newAddCmd(),
+		newAmendCmd(),
 		newAppendCmd(),
 		newCommitCmd(),
 		newDiffCmd(),
