@@ -19,10 +19,10 @@ func newSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "sync",
 		Aliases: []string{"s"},
-		Short:   "Fetch trunk from origin and restack the current stack.",
-		Long: "Fetch trunk from origin, then rebase the stack containing the current branch.\n" +
-			"Use --repo to rebase every stack in this repo, or --all to do that for every\n" +
-			"tracked repo. Pruning of merged PRs and PR-footer refresh always run repo-wide.",
+		Short:   "fetch trunk from origin and restack the current stack.",
+		Long: "fetch trunk from origin, then rebase the stack containing the current branch.\n" +
+			"use --repo to rebase every stack in this repo, or --all to do that for every\n" +
+			"tracked repo. pruning of merged prs and pr-footer refresh always run repo-wide.",
 		Args: cobra.NoArgs,
 		RunE: runSync,
 	}

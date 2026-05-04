@@ -27,7 +27,7 @@ func newUpstreamCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "upstream [n]",
 		Aliases: []string{"up"},
-		Short:   "Move n steps toward trunk (toward the parent). Default 1.",
+		Short:   "move n steps toward trunk (toward the parent). default 1.",
 		Args:    cobra.RangeArgs(0, 1),
 		RunE:    func(cmd *cobra.Command, args []string) error { return runNav(args, navUpstream) },
 	}
@@ -37,7 +37,7 @@ func newDownstreamCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "downstream [n]",
 		Aliases: []string{"down"},
-		Short:   "Move n steps toward the leaf (toward the child). Default 1.",
+		Short:   "move n steps toward the leaf (toward the child). default 1.",
 		Args:    cobra.RangeArgs(0, 1),
 		RunE:    func(cmd *cobra.Command, args []string) error { return runNav(args, navDownstream) },
 	}
@@ -47,7 +47,7 @@ func newFirstCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "first",
 		Aliases: []string{"1"},
-		Short:   "Jump to the first entry of the current stack (direct child of trunk).",
+		Short:   "jump to the first entry of the current stack (direct child of trunk).",
 		Args:    cobra.NoArgs,
 		RunE:    func(cmd *cobra.Command, args []string) error { return runNav(nil, navFirst) },
 	}
@@ -57,7 +57,7 @@ func newLastCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "last",
 		Aliases: []string{"N"},
-		Short:   "Jump to the last entry of the current stack (the leaf).",
+		Short:   "jump to the last entry of the current stack (the leaf).",
 		Args:    cobra.NoArgs,
 		RunE:    func(cmd *cobra.Command, args []string) error { return runNav(nil, navLast) },
 	}
@@ -67,7 +67,7 @@ func newTrunkCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "trunk",
 		Aliases: []string{"0"},
-		Short:   "Jump to trunk.",
+		Short:   "jump to trunk.",
 		Args:    cobra.NoArgs,
 		RunE:    func(cmd *cobra.Command, args []string) error { return runNav(nil, navTrunk) },
 	}

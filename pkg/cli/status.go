@@ -20,14 +20,14 @@ func newStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "status",
 		Aliases: []string{"stat"},
-		Short:   "Show stack position, working tree, and what needs attention.",
-		Long: `status (stat) prints a compact "you are here" view tailored to stacked
-work — the worktree path, lineage in the stack, ahead/behind the
+		Short:   "show stack position, working tree, and what needs attention.",
+		Long: `prints a compact view of the current branch's position in the stack:
+the worktree path, lineage, ahead/behind the
 parent, working-tree summary, and any actionable hints (paused sync,
-parent moved since last restack, PR open with unpushed commits, etc.).
+parent moved since last restack, pr open with unpushed commits, etc.).
 
-PR statuses come from gg's local cache (same one ` + "`gg log`" + ` populates),
-so this stays fast. Run ` + "`gg log`" + ` or wait for the precmd prefetch to
+pr statuses come from gg's local cache (same one ` + "`gg log`" + ` populates),
+so this stays fast. run ` + "`gg log`" + ` or wait for the precmd prefetch to
 freshen the cache.`,
 		Args: cobra.NoArgs,
 		RunE: runStatus,

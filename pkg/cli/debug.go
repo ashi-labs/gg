@@ -1,4 +1,5 @@
-// go:build debug
+//go:build debug
+
 package cli
 
 import (

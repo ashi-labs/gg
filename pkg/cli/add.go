@@ -11,12 +11,12 @@ import (
 func newAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add [paths...]",
-		Short: "Stage paths in the current worktree for the next commit.",
-		Long: `add stages paths for the next commit. With -a, every change in the
-current worktree is staged — modified, deleted, AND untracked.
+		Short: "stage paths in the current worktree for the next commit.",
+		Long: `stages paths for the next commit. with -a, every change in the
+current worktree is staged — modified, deleted, and untracked.
 -a is mutually exclusive with explicit paths.
 
-Tab completion suggests addable files (modified, deleted, or untracked) — 
+tab completion suggests addable files (modified, deleted, or untracked) —
 fully-clean paths aren't offered.`,
 		Args:              cobra.ArbitraryArgs,
 		RunE:              runAdd,

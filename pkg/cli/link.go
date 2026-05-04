@@ -16,13 +16,13 @@ func newLinkCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "link [bare-path]",
 		Aliases: []string{"ln"},
-		Short:   "Re-bind a moved gg repo: rewrite stale paths in its config and the registry.",
-		Long: `Run from inside a gg-managed repo that has been moved on disk. gg link
-detects the new bare location (or takes one as an argument), runs
-` + "`git worktree repair`" + ` to fix git's internal pointers, then rewrites the
-paths in the bare's gg config (primary worktree + every tracked branch's
-worktree) by replacing the old parent prefix with the new one. The registry
-entry is moved to the new bare path as well.`,
+		Short:   "re-bind a moved gg repo: rewrite stale paths in its config and the registry.",
+		Long: `run from inside a gg-managed repo that has been moved on disk. detects
+the new bare location (or takes one as an argument), runs
+` + "`git worktree repair`" + ` to fix git's internal pointers, then rewrites
+the paths in the bare's gg config (primary worktree + every tracked
+branch's worktree) by replacing the old parent prefix with the new
+one. the registry entry is moved to the new bare path as well.`,
 		Args: cobra.RangeArgs(0, 1),
 		RunE: runLink,
 	}
