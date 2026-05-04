@@ -14,23 +14,87 @@ import (
 )
 
 func newRenameCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "rename <new>",
-		Short: "rename the current branch and its worktree directory.",
-		Args:  cobra.ExactArgs(1),
-		RunE:  runRename,
+	cmd := &cobra.Command{
+		Use:     "rename <src> <dst>",
+		Aliases: []string{"mv"},
+		Short:   "move/rename files (default) or rename a branch with -b.",
+		Long: `wraps ` + "`git mv`" + ` for files. with -b/--branch, renames the current
+branch and its worktree (single argument: the new name; source is
+implicit — always the current branch).
+
+defaults to file mode so the muscle-memory of unix ` + "`mv`" + ` and ` + "`git mv`" + `
+keeps working. -b is the explicit opt-in for branch operations.
+
+` + "`gg mv`" + ` is an alias of ` + "`gg rename`" + `; the two are identical.`,
+		Args:              cobra.MinimumNArgs(1),
+		RunE:              runRename,
+		ValidArgsFunction: completeRenameArgs,
 	}
+	cmd.Flags().BoolP("branch", "b", false, "rename the current branch instead of files")
+	cmd.Flags().BoolP("force", "f", false, "file mode: overwrite the destination if it exists")
+	return cmd
+}
+
+// completeRenameArgs picks completion candidates by mode.
+//   - branch mode (-b): nothing to suggest — the lone arg is a freeform
+//     new branch name; the source is always the current branch.
+//     suggesting existing branches would be misleading (renaming TO an
+//     existing name fails).
+//   - file mode (default): tracked paths at position 0; position 1 (the
+//     destination) is freeform.
+func completeRenameArgs(
+	cmd *cobra.Command,
+	args []string,
+	toComplete string,
+) ([]string, cobra.ShellCompDirective) {
+	if branch, _ := cmd.Flags().GetBool("branch"); branch {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		return completeTrackedPaths(cmd, args, toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
 func runRename(cmd *cobra.Command, args []string) error {
 	if repo == nil {
 		return ctxResolutionErr
 	}
-	newName := args[0]
+	if branch, _ := cmd.Flags().GetBool("branch"); branch {
+		return runRenameBranch(cmd, args)
+	}
+	return runRenameFiles(cmd, args)
+}
+
+// runRenameFiles is the file-mode body — passthrough to `git mv`.
+func runRenameFiles(cmd *cobra.Command, args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("file mode: <src> and <dst> are required")
+	}
+	gitArgs := []string{"mv"}
+	if v, _ := cmd.Flags().GetBool("force"); v {
+		gitArgs = append(gitArgs, "-f")
+	}
+	gitArgs = append(gitArgs, args...)
+	return gitx.In(cwd).Cmd(gitArgs...).Pipe().Run()
+}
+
+// runRenameBranch is the branch-mode body — single positional (the
+// new name); source is always the current branch.
+func runRenameBranch(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("branch mode: exactly one new branch name is required (source is the current branch)")
+	}
 	current, err := gitx.Revision.CurrentBranch(cwd)
 	if err != nil {
 		return err
 	}
+	return doRenameCurrent(current, args[0])
+}
+
+// doRenameCurrent contains the original `gg rename` body — kept as its
+// own helper so runRenameBranch routes through it cleanly.
+func doRenameCurrent(current, newName string) error {
 	if current == "HEAD" || current == "" {
 		return fmt.Errorf("detached HEAD; checkout a branch first")
 	}

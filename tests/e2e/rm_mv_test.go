@@ -119,38 +119,26 @@ func TestMvBranch(t *testing.T) {
 	}
 }
 
-// TestMvBranchTwoArgsRequiresStandingInSource: `gg mv -b <old> <new>`
-// renames <old> to <new>, but only when the user is already standing
-// in the <old> worktree (since renaming rewrites the worktree dir).
-// Asking to rename a non-current branch returns a clear error pointing
-// the user to cd or use `gg rename`.
-func TestMvBranchTwoArgsRequiresStandingInSource(t *testing.T) {
+// TestMvBranchRequiresOneArg: `gg mv -b` takes exactly one positional
+// (the new name); the source is always the current branch.
+func TestMvBranchRequiresOneArg(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
 	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
 	e.ggMust(primary, "append", "feat-a")
 	faPath := filepath.Join(e.work, "demo", "feat-a")
 
-	// From feat-a's worktree, asking to rename `main` (a different branch)
-	// should fail with a `cd into ... first` hint.
-	if _, err := e.gg(faPath, "mv", "-b", "main", "main-renamed"); err == nil {
-		t.Fatal("`gg mv -b <other> <new>` should refuse from a non-source worktree")
-	}
-	// But `gg mv -b feat-a feat-renamed` from feat-a's worktree should
-	// succeed — old-name == current.
-	if _, err := e.gg(faPath, "mv", "-b", "feat-a", "feat-renamed"); err != nil {
-		t.Fatalf("two-arg form should work when source == current: %v", err)
-	}
-	if !e.exists(filepath.Join(e.work, "demo", "feat-renamed")) {
-		t.Errorf("renamed worktree should exist at feat-renamed")
+	if _, err := e.gg(faPath, "mv", "-b", "feat-a", "feat-b"); err == nil {
+		t.Fatal("`gg mv -b` should reject more than one positional")
 	}
 }
 
-// TestMvBranchCompletionExcludesCurrent: tab-completion in branch mode
-// at position 0 should suggest tracked branches but NOT the current
-// one (you can't rename the branch you're standing in via the
-// two-arg form — and the one-arg form doesn't take a source anyway).
-func TestMvBranchCompletionExcludesCurrent(t *testing.T) {
+// TestMvBranchOffersNoCompletions: in branch mode, mv takes a freeform
+// new branch name; the source is always the current branch. Offering
+// any candidate would be misleading (existing branches can't be the
+// target — rename-to-existing fails — and there's nothing to complete
+// for a name the user is inventing).
+func TestMvBranchOffersNoCompletions(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
 	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
@@ -162,26 +150,11 @@ func TestMvBranchCompletionExcludesCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var lines []string
 	for _, line := range strings.Split(out, "\n") {
 		if line == "" || strings.HasPrefix(line, ":") {
 			continue
 		}
-		// cobra emits "name\tdescription"; only the name half matters.
-		name := strings.SplitN(line, "\t", 2)[0]
-		lines = append(lines, name)
-	}
-	foundFeatB := false
-	for _, name := range lines {
-		if name == "feat-a" {
-			t.Errorf("mv -b completion should exclude the current branch (feat-a):\n%v", lines)
-		}
-		if name == "feat-b" {
-			foundFeatB = true
-		}
-	}
-	if !foundFeatB {
-		t.Errorf("mv -b completion missing feat-b: %v", lines)
+		t.Errorf("mv -b should offer no candidates, got: %q", line)
 	}
 }
 
