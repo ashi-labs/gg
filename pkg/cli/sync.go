@@ -292,8 +292,13 @@ func pruneMergedBranches(emit func(sync.Event) error, suspend ttySuspender) (str
 			// Best-effort: a failure here shouldn't abort the prune, since
 			// the local stack is still made coherent and the user can
 			// retarget by hand if needed.
+			//
+			// Skip kids that are themselves merged — GitHub rejects base
+			// edits on merged PRs ("Base branch cannot be updated on a
+			// merged pull request"), and it'd be wasted work anyway since
+			// the kid's branch is about to be removed in this same pass.
 			kidBranch := l.ByName[kid]
-			if kidBranch.PRNumber > 0 {
+			if kidBranch.PRNumber > 0 && !mergedSet[kid] {
 				if err := gitx.Forge.SetPRBaseBranch(
 					repo.PrimaryWorktree,
 					kidBranch.PRNumber,
