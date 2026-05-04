@@ -15,11 +15,10 @@ import (
 
 func newRenameCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "rename <new>",
-		Aliases: []string{"mv"},
-		Short:   "rename the current branch and its worktree directory.",
-		Args:    cobra.ExactArgs(1),
-		RunE:    runRename,
+		Use:   "rename <new>",
+		Short: "rename the current branch and its worktree directory.",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runRename,
 	}
 }
 
