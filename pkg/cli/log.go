@@ -21,18 +21,19 @@ func newLogCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "log [branch]",
 		Aliases: []string{"ls"},
-		Short:   "Show the stack tree with configurable status columns.",
-		Long: `With no argument, renders every stack rooted off trunk. With a branch
-argument, narrows to just that stack — its root (the direct child of trunk
-that leads to the target), the target itself, and everything upstream
-and downstream in the same lineage. Trunk is still shown as the anchor row
-so the focused stack keeps its visual context.
+		Short:   "show the stack tree with configurable status columns.",
+		Long: `with no argument, renders every stack rooted off trunk. with a branch
+argument, narrows to just that stack — its root (the direct child of
+trunk that leads to the target), the target itself, and everything
+upstream and downstream in the same lineage. trunk is still shown as
+the anchor row so the focused stack keeps its visual context.
 
-Useful when the full tree is noisy and you want to look at one stack.
+useful when the full tree is noisy and one stack should be in focus.
 
-With -a/--all, expands each branch with its unique commits (parent..branch)
-listed inline under the branch row, newest first. Siblings are also sorted
-by most-recent-commit so the eye lands on hot work first.`,
+with -a/--all, expands each branch with its unique commits
+(parent..branch) listed inline under the branch row, newest first.
+siblings are sorted by most-recent-commit so the eye lands on hot
+work first.`,
 		Args:              cobra.RangeArgs(0, 1),
 		RunE:              runLog,
 		ValidArgsFunction: completeBranches(compOpts{}),

@@ -8,7 +8,7 @@ import (
 func newAbortCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "abort",
-		Short: "Abort a paused sync/restack and reset every branch to its pre-sync SHA.",
+		Short: "abort a paused sync/restack and reset every branch to its pre-sync sha.",
 		Args:  cobra.NoArgs,
 		RunE:  runAbort,
 	}

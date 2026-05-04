@@ -14,7 +14,7 @@ func newShellCmd() *cobra.Command {
 	shell := &cobra.Command{
 		Use:     "shell",
 		Aliases: []string{"sh"},
-		Short:   "Shell integration helpers.",
+		Short:   "shell integration helpers.",
 	}
 	shell.AddCommand(newShellInstallCmd())
 	return shell
@@ -23,10 +23,10 @@ func newShellCmd() *cobra.Command {
 func newShellInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install <shell>",
-		Short: "Install the gg shell wrapper + completions and wire them into your shell rc.",
-		Long: `Writes the wrapper (with completion bundled inline) to a per-user
-location and edits your shell rc so it gets sourced on every new
-shell. Idempotent — re-running this command updates the managed
+		Short: "install the gg shell wrapper + completions and wire them into your shell rc.",
+		Long: `writes the wrapper (with completion bundled inline) to a per-user
+location and edits the shell rc so it gets sourced on every new
+shell. idempotent — re-running this command updates the managed
 block in place rather than appending duplicates.
 
 zsh:
@@ -41,24 +41,25 @@ fish (autoloaded by fish, so no rc edit):
   wrapper:    $XDG_CONFIG_HOME/fish/functions/gg.fish
   completion: $XDG_CONFIG_HOME/fish/completions/gg.fish
 
-The rc-file edit is wrapped in marker comments:
+the rc-file edit is wrapped in marker comments:
 
   # >>> gg >>> DO NOT EDIT (managed by 'gg shell install')
   source "<wrapper-path>"
   # <<< gg <<<
 
-To uninstall, delete the marker block from your rc and remove the
-wrapper file. Re-running this command after a deletion is safe.
+to uninstall, delete the marker block from the rc and remove the
+wrapper file. re-running this command after a deletion is safe.
 
-Use --color=always to bake a color choice into the wrapper (handy if
-stderr isn't reliably a TTY in your shell, e.g. some multiplexers).
+use --color=always to bake a color choice into the wrapper (handy if
+stderr isn't reliably a tty in the shell, e.g. some multiplexers).
 
-Use --prefetch to install a precmd hook that warms gg log's PR-status
-cache in the background. Each prompt fires a detached "gg log --prefetch"
+use --prefetch to install a precmd hook that warms gg log's pr-status
+cache in the background. each prompt fires a detached "gg log --prefetch"
 when cwd is inside a git work tree; outside one, the hook is a no-op.
-On zsh a ZLE widget also fires the prefetch as soon as you start typing
-"gg ls" / "gg log", so the cache is warm by the time you hit Enter.
-Cache entries stay fresh for pr-cache-ttl-seconds in config (default 30s).`,
+on zsh a zle widget also fires the prefetch as soon as the user starts
+typing "gg ls" / "gg log", so the cache is warm by the time enter is
+hit. cache entries stay fresh for pr.cache-ttl-seconds in config
+(default 30s).`,
 		Args: cobra.ExactArgs(1),
 		RunE: runShellInstall,
 	}

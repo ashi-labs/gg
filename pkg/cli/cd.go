@@ -21,20 +21,20 @@ import (
 func newCdCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "cd [repo[:branch[:path]]]",
-		Short: "Jump to any tracked branch (and optionally a path within it).",
-		Long: `cd accepts a colon-separated target in up to three tiers:
+		Short: "jump to any tracked branch (and optionally a path within it).",
+		Long: `accepts a colon-separated target in up to three tiers:
 
   gg cd                         flat picker across every repo's branches
   gg cd <repo>                  repo-scoped: picker, or auto-skip if 1 branch
   gg cd <repo>:<branch>         jump straight to that branch's worktree
   gg cd <repo>:<branch>:<path>  jump inside a branch, at a subpath
 
-When <path> points to a file, cd resolves to the file's parent directory
-so the shell's ` + "`cd`" + ` accepts it.
+when <path> points to a file, the resolved target is the file's parent
+directory so the shell's ` + "`cd`" + ` accepts it.
 
-Completion is tier-aware: ` + "`r<Tab>`" + ` completes repo names, ` + "`r:b<Tab>`" + `
-completes branches in repo, ` + "`r:b:p<Tab>`" + ` completes paths within that
-branch's worktree (skipping .bare and .git).`,
+completion is tier-aware: ` + "`r<Tab>`" + ` completes repo names, ` + "`r:b<Tab>`" + `
+completes branches in the repo, ` + "`r:b:p<Tab>`" + ` completes paths within
+that branch's worktree (skipping .bare and .git).`,
 		Args:              cobra.RangeArgs(0, 1),
 		RunE:              runCd,
 		ValidArgsFunction: completeCd,

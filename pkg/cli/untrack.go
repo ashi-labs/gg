@@ -13,7 +13,7 @@ import (
 func newUntrackCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:               "untrack [branch]",
-		Short:             "Drop lineage metadata. Leaves branch and worktree alone.",
+		Short:             "drop lineage metadata. leaves branch and worktree alone.",
 		Args:              cobra.RangeArgs(0, 1),
 		RunE:              runUntrack,
 		ValidArgsFunction: completeBranches(compOpts{ExcludeTrunk: true}),

@@ -12,7 +12,7 @@ import (
 func newFoldCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fold",
-		Short: "Squash the current branch's commits into its parent; reparent children onto the parent.",
+		Short: "squash the current branch's commits into its parent; reparent children onto the parent.",
 		Args:  cobra.NoArgs,
 		RunE:  runFold,
 	}

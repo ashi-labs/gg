@@ -6,7 +6,7 @@ func newNewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "new <branch>",
 		Aliases: []string{"n"},
-		Short:   "Create a new branch + worktree off trunk (regardless of where you are).",
+		Short:   "create a new branch + worktree off trunk (regardless of the current worktree).",
 		Args:    cobra.ExactArgs(1),
 		RunE:    runNew,
 	}

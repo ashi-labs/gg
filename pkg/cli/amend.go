@@ -11,27 +11,17 @@ import (
 func newAmendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "amend [paths...]",
-		Short: "Amend the tip commit and restack any descendant branches.",
-		Long: `amend rewrites the current branch's tip commit, then — because the
-tip SHA changes — restacks every descendant branch onto the new tip
-so the rest of the stack stays coherent. This is the killer move for
-stacked PRs: address review feedback on PR #2 of 4 without piling up
-"fixup" commits, and downstream branches catch up automatically.
+		Short: "amend the tip commit and restack any descendant branches.",
+		Long: `rewrites the current branch's tip commit and restacks any descendant
+branches onto the new tip. the restack is mandatory because amending
+replaces the tip sha, leaving descendants whose recorded parent sha
+pointed at the old tip otherwise orphaned.
 
-Flags:
-  -a, --all       stage every tracked, modified file before amending.
-  -m, --message   replace the commit message (skips the editor).
-  --no-edit       keep the existing message (the common case for
-                  "amend in my latest fix").
-  --no-verify     bypass pre-commit and commit-msg hooks.
+on a leaf branch the restack is a no-op. on trunk with child stacks,
+every stack is restacked.
 
-Behaviour by branch:
-  - leaf (no children):  amends; no restack needed.
-  - non-tip stack branch: amends, then restacks descendants.
-  - trunk with stacks built on it: amends, then restacks every stack.
-
-Refuses to run when a sync/restack is paused on a conflict — finish
-that with ` + "`gg continue`" + ` or ` + "`gg abort`" + ` first, then amend.`,
+refuses to run while a sync or restack is paused on a conflict;
+resolve with ` + "`gg continue`" + ` or ` + "`gg abort`" + ` first.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: runAmend,
 	}

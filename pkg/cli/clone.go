@@ -15,12 +15,12 @@ import (
 )
 
 const cloneLongHelp = `
-Clone a repo from a remote repository into a gg managed repo and cd into the primary worktree.`
+clone a remote repository into a gg-managed repo and cd into the primary worktree.`
 
 func newCloneCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clone <url> [name]",
-		Short: "Clone a repo.",
+		Short: "clone a repo.",
 		Long:  cloneLongHelp,
 		Args:  cobra.RangeArgs(1, 2),
 		RunE:  runClone,

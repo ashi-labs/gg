@@ -9,12 +9,14 @@ func newCommitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "commit [paths...]",
 		Aliases: []string{"c"},
-		Short:   "Commit staged changes in the current worktree.",
-		Long: `commit (c) creates a commit in the current worktree. With -m the
-message is taken from the flag and the editor is skipped; without -m
-your editor opens as usual. -a stages every tracked file that's been
-modified or deleted before committing (untracked files are ignored —
-use ` + "`gg add`" + ` for those).`,
+		Short:   "commit staged changes in the current worktree.",
+		Long: `creates a commit in the current worktree. without -m the configured
+editor opens for the commit message.
+
+descendant branches are not restacked: a plain commit appends to the
+tip without invalidating the old tip sha, so children stay valid
+(merely behind). run ` + "`gg restack`" + ` to propagate the new commit up the
+stack — typically after a batch of commits, not after every one.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: runCommit,
 	}

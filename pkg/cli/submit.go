@@ -17,18 +17,18 @@ import (
 func newSubmitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "submit",
-		Short: "Open/refresh the current branch's PR on GitHub (or the whole stack with --all).",
+		Short: "open or refresh a pr for the current branch on github (or for the whole stack with --all).",
 		Args:  cobra.NoArgs,
 		RunE:  runSubmit,
 	}
 	cmd.Flags().BoolP("all", "a", false, "submit every branch in the current stack")
 	cmd.Flags().Bool("upstack", false, "submit current branch and descendants")
 	cmd.Flags().Bool("downstack", false, "submit current branch and ancestors")
-	cmd.Flags().Bool("draft", false, "create PRs in draft state")
+	cmd.Flags().Bool("draft", false, "create prs in draft state")
 	cmd.Flags().
-		String("title", "", "PR title (overrides the auto-derived first-commit subject; single-branch only)")
+		String("title", "", "pr title (overrides the auto-derived latest-commit subject; single-branch only)")
 	cmd.Flags().
-		String("body", "", "PR body (replaces the template-seeded body; stack footer is still appended; single-branch only)")
+		String("body", "", "pr body (replaces the template-seeded body; stack footer is always appended; single-branch only)")
 	return cmd
 }
 

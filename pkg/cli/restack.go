@@ -9,7 +9,7 @@ func newRestackCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "restack",
 		Aliases: []string{"rs"},
-		Short:   "Restack every branch onto its parent without fetching from origin.",
+		Short:   "restack every branch onto its parent without fetching from origin.",
 		Args:    cobra.NoArgs,
 		RunE:    runRestack,
 	}

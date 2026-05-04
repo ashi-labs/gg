@@ -15,7 +15,7 @@ func newCleanupCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cleanup",
 		Aliases: []string{"clean"},
-		Short:   "Prune registry entries whose bare repo is missing on disk.",
+		Short:   "prune registry entries whose bare repo is missing on disk.",
 		Args:    cobra.NoArgs,
 		RunE:    runCleanup,
 	}
