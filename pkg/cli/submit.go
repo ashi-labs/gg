@@ -79,6 +79,7 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 	prs := map[string]int{}
 	createdPR := false
 	pushedCommits := false
+	retargetedPRs := false
 	for _, name := range ordered {
 		b, err := state.LoadBranch(bare, name)
 		if err != nil {
@@ -115,6 +116,7 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 				); err != nil {
 					errorf("failed to retarget PR #%d to %s: %v", b.PRNumber, expectedBase, err)
 				} else {
+					retargetedPRs = true
 					successf(
 						"retargeted PR #%d: %s -> %s",
 						b.PRNumber,
@@ -210,7 +212,7 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	if !createdPR && !pushedCommits {
+	if !createdPR && !pushedCommits && !retargetedPRs {
 		hintf("everything already up-to-date")
 	}
 	return nil
