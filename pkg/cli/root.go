@@ -92,7 +92,7 @@ func commandGroups() []commandGroup {
 			newTrunkCmd(), newReposCmd(),
 		}},
 		{groupRemotes, groupRemotes, []*cobra.Command{
-			newSyncCmd(), newSubmitCmd(),
+			newFetchCmd(), newSyncCmd(), newSubmitCmd(),
 		}},
 		{groupConflicts, groupConflicts, []*cobra.Command{
 			newContinueCmd(), newAbortCmd(),
