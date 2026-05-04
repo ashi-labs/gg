@@ -8,7 +8,7 @@ import (
 func newContinueCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "continue",
-		Short: "Resume a paused sync or restack after resolving conflicts.",
+		Short: "resume a paused sync or restack after resolving conflicts.",
 		Args:  cobra.NoArgs,
 		RunE:  runContinue,
 	}

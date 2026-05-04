@@ -12,21 +12,18 @@ func newDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "diff [branch] [paths...]",
 		Aliases: []string{"d"},
-		Short:   "Show changes in the current worktree, against the index, parent, or another branch.",
-		Long: `diff (d) shows pending changes. Defaults to the working tree vs HEAD
-(matches ` + "`git diff`" + `). Flags shift the comparison:
+		Short:   "show changes in the current worktree, against the index, parent, or another branch.",
+		Long: `shows pending changes. the default comparison is working tree vs head
+(equivalent to ` + "`git diff`" + `). --staged compares the index to head;
+--parent compares head to this branch's stack parent. --parent errors
+on trunk because trunk has no parent.
 
-  --staged   compare the index to HEAD (what's queued for commit).
-  --parent   compare HEAD to this branch's stack parent — the typical
-             "what does my branch add" view that PR reviewers see.
-             Errors on trunk (no parent).
+a positional <branch> compares head to that branch (<branch>..HEAD).
+trailing positional args are paths that scope the diff. use ` + "`--`" + ` to
+force path interpretation when a path shares a name with a branch
+(e.g. ` + "`gg diff -- feat-a`" + `).
 
-A positional <branch> argument compares HEAD to that branch
-(<branch>..HEAD). Trailing positional args are treated as paths to scope
-the diff. Use ` + "`--`" + ` to disambiguate when a path shares a name with a
-branch (e.g. ` + "`gg diff -- feat-a`" + `).
-
-Output streams through git's pager and color settings unchanged.`,
+output streams through git's pager and color settings unchanged.`,
 		Args:              cobra.ArbitraryArgs,
 		RunE:              runDiff,
 		ValidArgsFunction: completeDiffArgs,

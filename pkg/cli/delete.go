@@ -16,12 +16,13 @@ func newDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete [branch]",
 		Aliases: []string{"rm"},
-		Short:   "Remove a branch and its worktree; reparent children onto the parent.",
-		Long: `With no argument, opens a picker listing tracked branches (excluding the
-current one, which can't be deleted while you're standing in it).
+		Short:   "remove a branch and its worktree; reparent children onto the parent.",
+		Long: `with no argument, opens a picker listing tracked branches (excluding
+the current one, which can't be deleted while standing in it).
 
-With --recursive (-r), deletes the target and every branch downstream of it.
-Refuses if your current branch is in the doomed set — ` + "`gg upstream`" + ` out first.`,
+with --recursive (-r), deletes the target and every branch downstream
+of it. refuses when the current branch is in the doomed set;
+` + "`gg upstream`" + ` out first.`,
 		Args:              cobra.RangeArgs(0, 1),
 		RunE:              runDelete,
 		ValidArgsFunction: completeBranches(compOpts{ExcludeCurrent: true}),

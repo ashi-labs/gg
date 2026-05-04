@@ -22,20 +22,20 @@ func newCheckoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "checkout [branch]",
 		Aliases: []string{"co"},
-		Short:   "Pick a branch in the current repo (repo-scoped `gg cd`).",
-		Long: `checkout (co) is a shorthand for ` + "`gg cd`" + ` that only lists branches in the
-repo you're currently inside. Useful as a muscle-memory alias for
-` + "`git checkout`" + `-style navigation within a repo.
+		Short:   "pick a branch in the current repo (repo-scoped `gg cd`).",
+		Long: `repo-scoped shorthand for ` + "`gg cd`" + `. lists only branches in the
+current repo, providing a muscle-memory alias for ` + "`git checkout`" + `-style
+navigation.
 
-With no arg: opens the picker scoped to this repo.
-With a branch name (exactly matching trunk or a tracked branch): jumps
-straight to that branch's worktree — no picker.
+with no argument, opens the picker scoped to the current repo. with
+a branch name that exactly matches trunk or a tracked branch, jumps
+straight to that branch's worktree without a picker.
 
-If the resolved target is the worktree you're already inside, co prints
-a "nothing to do" hint instead of a path so the shell wrapper doesn't
-redundantly cd to the same spot.
+when the resolved target is the worktree the user is already inside,
+prints a "nothing to do" hint instead of a path so the shell wrapper
+doesn't cd redundantly.
 
-Fails outside a tracked repo — use ` + "`gg cd`" + ` for the cross-repo picker.`,
+fails outside a tracked repo; use ` + "`gg cd`" + ` for the cross-repo picker.`,
 		Args:              cobra.RangeArgs(0, 1),
 		RunE:              runCheckout,
 		ValidArgsFunction: completeCheckoutBranches,

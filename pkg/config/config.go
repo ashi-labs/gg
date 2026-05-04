@@ -165,7 +165,9 @@ const (
 	ExtensionYml  = "yml"
 )
 
-func configBaseDir() string {
+// BaseDir returns the directory gg's config lives in:
+// $XDG_CONFIG_HOME/gg, falling back to $HOME/.config/gg.
+func BaseDir() string {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
 		home, err := os.UserHomeDir()
@@ -177,6 +179,13 @@ func configBaseDir() string {
 	return filepath.Join(base, "gg")
 }
 
+// DefaultPath returns the canonical on-disk path for `gg config -w`
+// to write the default config to. TOML wins among the supported
+// extensions; users who prefer YAML can rename after writing.
+func DefaultPath() string {
+	return filepath.Join(BaseDir(), "config.toml")
+}
+
 func readConfig(path string) []byte {
 	data, err := os.ReadFile(path)
 	if err == nil {
@@ -184,6 +193,11 @@ func readConfig(path string) []byte {
 	}
 	return nil
 }
+
+// Default returns the full Config struct with every field populated to
+// its built-in default. Used by `gg config` to render or write the
+// canonical baseline.
+func Default() Config { return defaultConfig() }
 
 func defaultConfig() Config {
 	return Config{
@@ -216,7 +230,7 @@ func defaultConfig() Config {
 
 func Load() Config {
 	cfg := defaultConfig()
-	base := configBaseDir()
+	base := BaseDir()
 	var extension, cfgPath string
 	var cfgData []byte
 	for _, extension = range []string{"toml", "yaml", "yml"} {

@@ -12,8 +12,8 @@ import (
 func newTrackCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "track",
-		Short: "Adopt the current branch into a stack.",
-		Long: `Registers the current branch in gg's lineage. Run this from the worktree
+		Short: "adopt the current branch into a stack.",
+		Long: `registers the current branch in gg's lineage. run from the worktree
 of a branch that exists but wasn't created with gg append/new.`,
 		Args: cobra.NoArgs,
 		RunE: runTrack,

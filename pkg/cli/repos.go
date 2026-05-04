@@ -19,7 +19,7 @@ import (
 func newReposCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repos",
-		Short: "Pick a tracked repo and cd to its primary worktree.",
+		Short: "pick a tracked repo and cd to its primary worktree.",
 		Args:  cobra.NoArgs,
 		RunE:  runRepos,
 	}

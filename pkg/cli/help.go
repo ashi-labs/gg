@@ -15,6 +15,11 @@ import (
 // Branch, descriptions in Dim — so the eye has a left column of
 // identifiers and a right column of prose.
 //
+// Section headers are lowercase with no trailing colon, matching the
+// styling badges used elsewhere (gg status, gg log). Subcommand help
+// uses the same template so `gg --help` and `gg <cmd> --help` read
+// the same way.
+//
 // Wired up via rootCmd.SetHelpFunc so every subcommand inherits the
 // look without opting in.
 func styledHelpFunc(cmd *cobra.Command, _ []string) {
@@ -31,7 +36,7 @@ func styledHelpFunc(cmd *cobra.Command, _ []string) {
 		plainln(short)
 		plainln("")
 	}
-	plainln(header.Render("Usage:"))
+	plainln(header.Render("usage"))
 	if cmd.Runnable() {
 		plainln(indent + cmd.UseLine())
 	}
@@ -41,12 +46,12 @@ func styledHelpFunc(cmd *cobra.Command, _ []string) {
 	}
 	if len(cmd.Aliases) > 0 {
 		plainln("")
-		plainln(header.Render("Aliases:"))
+		plainln(header.Render("aliases"))
 		plainln(indent + cmd.NameAndAliases())
 	}
 	if cmd.HasExample() {
 		plainln("")
-		plainln(header.Render("Examples:"))
+		plainln(header.Render("examples"))
 		plainln(cmd.Example)
 	}
 	if cmd.HasAvailableSubCommands() {
@@ -54,12 +59,12 @@ func styledHelpFunc(cmd *cobra.Command, _ []string) {
 	}
 	if cmd.HasAvailableLocalFlags() {
 		plainln("")
-		plainln(header.Render("Flags:"))
+		plainln(header.Render("flags"))
 		plainln(cmd.LocalFlags().FlagUsages())
 	}
 	if cmd.HasAvailableInheritedFlags() {
 		plainln("")
-		plainln(header.Render("Global Flags:"))
+		plainln(header.Render("global flags"))
 		plainln(cmd.InheritedFlags().FlagUsages())
 	}
 	if cmd.HasAvailableSubCommands() {
@@ -79,7 +84,7 @@ func writeCommandListing(cmd *cobra.Command, headerSty, cmdName, dim lipgloss.St
 	// Flat list when there are no groups.
 	if len(cmd.Groups()) == 0 {
 		plainln("")
-		plainln(headerSty.Render("Available Commands:"))
+		plainln(headerSty.Render("commands"))
 		for _, sub := range cmds {
 			if !sub.IsAvailableCommand() && sub.Name() != "help" {
 				continue
@@ -88,8 +93,8 @@ func writeCommandListing(cmd *cobra.Command, headerSty, cmdName, dim lipgloss.St
 		}
 		return
 	}
-	// Grouped layout: one section per group, optional "Additional Commands"
-	// bucket for strays.
+	// Grouped layout: one section per group, optional "additional" bucket
+	// for strays.
 	for _, group := range cmd.Groups() {
 		plainln("")
 		plainln(headerSty.Render(group.Title))
@@ -105,7 +110,7 @@ func writeCommandListing(cmd *cobra.Command, headerSty, cmdName, dim lipgloss.St
 	}
 	if !cmd.AllChildCommandsHaveGroup() {
 		plainln("")
-		plainln(headerSty.Render("Additional Commands:"))
+		plainln(headerSty.Render("additional"))
 		for _, sub := range cmds {
 			if sub.GroupID != "" {
 				continue

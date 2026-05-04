@@ -14,7 +14,7 @@ func newAppendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "append <branch>",
 		Aliases: []string{"a"},
-		Short:   "Append a new branch + worktree as a child of the current branch.",
+		Short:   "append a new branch + worktree as a child of the current branch.",
 		Args:    cobra.ExactArgs(1),
 		RunE:    runAppend,
 	}

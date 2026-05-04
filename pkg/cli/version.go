@@ -12,7 +12,7 @@ func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "version",
 		Aliases: []string{"v"},
-		Short:   "Print version and build info.",
+		Short:   "print version and build info.",
 		Run: func(cmd *cobra.Command, args []string) {
 			name := "git-good (gg)"
 			vBadge := style.StdoutRenderer.NewStyle().

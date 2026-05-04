@@ -17,21 +17,21 @@ import (
 const emptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 const initLongHelp = `
-Init a gg repo from three starting states:
+init a gg repo from three starting states:
 
   - empty directory       → creates .bare + empty initial commit + <trunk>/
   - directory with files  → same, plus relocates the existing files into
                             <trunk>/ where they sit as untracked content
   - regular git clone     → moves .git → .bare and relocates tracked +
-                            untracked files into <trunk>/. Refuses on a
+                            untracked files into <trunk>/. refuses on a
                             dirty tree to avoid losing uncommitted work.
 
-To clone an existing repo, use ` + "`" + `gg clone <url>` + "`" + `instead.`
+to clone an existing repo, use ` + "`" + `gg clone <url>` + "`" + `instead.`
 
 func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Init a gg managed repo in the current directory.",
+		Short: "init a gg-managed repo in the current directory.",
 		Long:  initLongHelp,
 		Args:  cobra.NoArgs,
 		RunE:  runInit,
