@@ -168,3 +168,63 @@ func TestContinueCompletesAfterManualResolve(t *testing.T) {
 		t.Errorf("post-continue restack should be clean, actual: %v", err)
 	}
 }
+
+// TestSyncIgnoresDirtySiblingStacks pins the fix for a real bug:
+// a stack-scoped sync used to refuse when ANY tracked branch in the
+// repo had a dirty worktree, even if that branch was in an unrelated
+// stack. After the fix, only the in-scope branches' worktrees are
+// checked for cleanliness — siblings can be dirty without blocking.
+//
+// Setup: two independent stacks off trunk (feat-a and feat-x). Dirty
+// feat-x's worktree, then run `gg sync` from feat-a. It should succeed.
+func TestSyncIgnoresDirtySiblingStacks(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t).withOwnUpstream()
+	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
+
+	// Stack 1: feat-a (off trunk).
+	e.ggMust(primary, "append", "feat-a")
+	faPath := filepath.Join(e.work, "demo", "feat-a")
+	e.commitInto(faPath, "a.txt", "a", "a-commit")
+
+	// Stack 2: feat-x (also off trunk; sibling, not in feat-a's stack).
+	e.ggMust(faPath, "new", "feat-x")
+	fxPath := filepath.Join(e.work, "demo", "feat-x")
+	e.commitInto(fxPath, "x.txt", "x", "x-commit")
+
+	// Dirty feat-x. Stack-scoped sync from feat-a must NOT care.
+	e.writeFile(filepath.Join(fxPath, "x.txt"), "dirty edit\n")
+
+	if _, err := e.gg(faPath, "sync"); err != nil {
+		t.Fatalf("sync should ignore dirty sibling stack feat-x; got: %v", err)
+	}
+}
+
+// TestSyncRefusesDirtyInScopeBranch is the inverse: if a branch
+// IN-scope is dirty, sync must still refuse — that's the legitimate
+// safety check the bug fix preserved.
+func TestSyncRefusesDirtyInScopeBranch(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t).withOwnUpstream()
+	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
+	e.ggMust(primary, "append", "feat-a")
+	faPath := filepath.Join(e.work, "demo", "feat-a")
+	e.commitInto(faPath, "a.txt", "a", "a-commit")
+	e.ggMust(faPath, "append", "feat-b")
+	fbPath := filepath.Join(e.work, "demo", "feat-b")
+	e.commitInto(fbPath, "b.txt", "b", "b-commit")
+
+	// Advance trunk so the rebase plan is non-empty (otherwise the engine
+	// short-circuits before the cleanliness check fires).
+	scratch := e.work + "/collab"
+	mustExec(t, e.c, "", "git", "clone", e.upstream, scratch)
+	e.commitInto(scratch, "remote.txt", "hi", "remote commit")
+	mustExec(t, e.c, scratch, "git", "push", "origin", "main")
+
+	// feat-b is downstream of feat-a, so it's in feat-a's stack.
+	e.writeFile(filepath.Join(fbPath, "b.txt"), "dirty edit\n")
+
+	if _, err := e.gg(faPath, "sync"); err == nil {
+		t.Fatal("sync should refuse when an in-scope branch (feat-b) has a dirty worktree")
+	}
+}

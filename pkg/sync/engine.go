@@ -84,14 +84,14 @@ func Run(repo Repo, opts RunOpts) error {
 			rs.InProgressBranch,
 		)
 	}
-	branches, err := state.AllBranches(repo.BareDir)
-	if err != nil {
-		return err
-	}
-	if err := ensureClean(repo, branches); err != nil {
-		return err
-	}
+	// Pre-fetch cleanliness check: only the primary worktree matters here,
+	// because that's the one fast-forwarded by fetchAndFastForwardTrunk.
+	// Skip entirely when NoFetch — no ff means trunk's worktree isn't
+	// touched by this code path.
 	if !opts.NoFetch {
+		if err := ensurePrimaryClean(repo); err != nil {
+			return err
+		}
 		if err := emit(Event{Kind: EventFetchStart}); err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func Run(repo Repo, opts RunOpts) error {
 	if err := emit(Event{Kind: EventFetchDone}); err != nil {
 		return err
 	}
-	branches, err = state.AllBranches(repo.BareDir)
+	branches, err := state.AllBranches(repo.BareDir)
 	if err != nil {
 		return err
 	}
@@ -119,6 +119,14 @@ func Run(repo Repo, opts RunOpts) error {
 	}
 	if len(order) == 0 {
 		return nil
+	}
+	// Pre-rebase cleanliness check: only the worktrees we're about to
+	// rebase need to be clean. Sibling stacks (out of scope) can be as
+	// dirty as they like — they're not getting touched. This is the
+	// fix for the bug where a stack-scoped sync refused because
+	// uninvolved branches' worktrees had uncommitted edits.
+	if err := ensureClean(branchesByName(branches, order)); err != nil {
+		return err
 	}
 	snapshots, err := snapshotHeads(repo, order)
 	if err != nil {
@@ -344,22 +352,37 @@ func scopedOrder(l stack.Lineage, scope Scope) []string {
 	return filtered
 }
 
-func ensureClean(repo Repo, branches []state.Branch) error {
-	worktree := repo.PrimaryWorktree
-	if worktree != "" {
-		if dirty, err := gitx.Status.IsDirty(worktree); err != nil {
-			return err
-		} else if dirty {
-			return fmt.Errorf("primary worktree has uncommitted changes; commit or stash first")
-		}
+// ensurePrimaryClean fails fast when the primary worktree (where trunk
+// lives) has uncommitted changes — `git merge --ff-only` would either
+// refuse or land confusingly mid-fetch otherwise.
+func ensurePrimaryClean(repo Repo) error {
+	if repo.PrimaryWorktree == "" {
+		return nil
 	}
+	dirty, err := gitx.Status.IsDirty(repo.PrimaryWorktree)
+	if err != nil {
+		return err
+	}
+	if dirty {
+		return fmt.Errorf("primary worktree has uncommitted changes; commit or stash first")
+	}
+	return nil
+}
+
+// ensureClean fails when any of the given branches' worktrees has
+// uncommitted changes. Caller is responsible for filtering the input
+// to in-scope branches — passing the full set would (incorrectly)
+// block a stack-scoped sync over dirty siblings.
+func ensureClean(branches []state.Branch) error {
 	for _, b := range branches {
 		if b.Worktree == "" {
 			continue
 		}
-		if dirty, err := gitx.Status.IsDirty(b.Worktree); err != nil {
+		dirty, err := gitx.Status.IsDirty(b.Worktree)
+		if err != nil {
 			return err
-		} else if dirty {
+		}
+		if dirty {
 			return fmt.Errorf(
 				"%s has uncommitted changes in %s; commit or stash first",
 				b.Name,
@@ -368,6 +391,26 @@ func ensureClean(repo Repo, branches []state.Branch) error {
 		}
 	}
 	return nil
+}
+
+// branchesByName returns the subset of `all` whose Name appears in
+// `names`, preserving names ordering. Used to project an in-scope
+// rebase plan back to the full Branch records (with Worktree paths).
+func branchesByName(all []state.Branch, names []string) []state.Branch {
+	if len(names) == 0 {
+		return nil
+	}
+	byName := make(map[string]state.Branch, len(all))
+	for _, b := range all {
+		byName[b.Name] = b
+	}
+	out := make([]state.Branch, 0, len(names))
+	for _, n := range names {
+		if b, ok := byName[n]; ok {
+			out = append(out, b)
+		}
+	}
+	return out
 }
 
 func fetchAndFastForwardTrunk(repo Repo) error {
