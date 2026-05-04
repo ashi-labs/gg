@@ -70,6 +70,7 @@ type Palette struct {
 	Current    lipgloss.Style
 	Dim        lipgloss.Style
 	Dirty      lipgloss.Style
+	Danger     lipgloss.Style
 	Badge      lipgloss.Style
 	Foreground lipgloss.Style
 }
@@ -161,7 +162,7 @@ func Current() Theme { return current }
 func resolveTheme() Theme {
 	requested := os.Getenv("GG_THEME")
 	if requested == "" {
-		requested = config.Load().Theme
+		requested = config.Load().UI.Theme
 	}
 	if t, ok := themes[requested]; ok {
 		return t
@@ -183,6 +184,7 @@ func paletteFor(r *lipgloss.Renderer) Palette {
 		Current: r.NewStyle().Foreground(current.Magenta),
 		Dim:     r.NewStyle().Foreground(current.Dim),
 		Dirty:   r.NewStyle().Foreground(current.Orange),
+		Danger:  r.NewStyle().Foreground(current.Red),
 		Badge: r.NewStyle().
 			Foreground(current.BadgeFg).
 			Background(current.BadgeBg).
