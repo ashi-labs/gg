@@ -77,9 +77,6 @@ type commandGroup struct {
 
 func commandGroups() []commandGroup {
 	return []commandGroup{
-		{groupState, groupState, []*cobra.Command{
-			newStatusCmd(), newLogCmd(), newDiffCmd(), newBlameCmd(),
-		}},
 		{groupCommits, groupCommits, []*cobra.Command{
 			newAddCmd(), newCommitCmd(), newAmendCmd(),
 			newStashCmd(), newResetCmd(),
@@ -95,6 +92,9 @@ func commandGroups() []commandGroup {
 			newUpstreamCmd(), newDownstreamCmd(),
 			newFirstCmd(), newLastCmd(),
 			newTrunkCmd(), newReposCmd(),
+		}},
+		{groupState, groupState, []*cobra.Command{
+			newStatusCmd(), newLogCmd(), newDiffCmd(), newBlameCmd(),
 		}},
 		{groupRemotes, groupRemotes, []*cobra.Command{
 			newFetchCmd(), newSyncCmd(), newSubmitCmd(),
