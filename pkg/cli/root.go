@@ -57,6 +57,7 @@ func init() {
 // commands to groups; titles are what `gg --help` renders. Both
 // lowercase by convention. Order here is the order groups print in.
 const (
+	groupState      = "state"
 	groupCommits    = "commits"
 	groupStacks     = "stacks"
 	groupNavigation = "navigation"
@@ -76,12 +77,13 @@ type commandGroup struct {
 
 func commandGroups() []commandGroup {
 	return []commandGroup{
+		{groupState, groupState, []*cobra.Command{
+			newStatusCmd(), newLogCmd(), newDiffCmd(), newBlameCmd(),
+		}},
 		{groupCommits, groupCommits, []*cobra.Command{
-			newStatusCmd(), newLogCmd(), newDiffCmd(),
 			newAddCmd(), newCommitCmd(), newAmendCmd(),
-			newStashCmd(), newResetCmd(), newBlameCmd(),
-			newRmCmd(), newMvCmd(), newRevertCmd(),
-			newRestoreCmd(),
+			newStashCmd(), newResetCmd(),
+			newRevertCmd(), newRestoreCmd(),
 		}},
 		{groupStacks, groupStacks, []*cobra.Command{
 			newNewCmd(), newAppendCmd(), newFoldCmd(),

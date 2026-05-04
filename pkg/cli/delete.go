@@ -14,27 +14,68 @@ import (
 
 func newDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete [branch]",
-		Short: "remove a branch and its worktree; reparent children onto the parent.",
-		Long: `with no argument, opens a picker listing tracked branches (excluding
-the current one, which can't be deleted while standing in it).
+		Use:     "delete [paths...]",
+		Aliases: []string{"rm"},
+		Short:   "remove files (default) or a branch with -b.",
+		Long: `wraps ` + "`git rm`" + ` for files. with -b/--branch, removes a branch
+and its worktree (with the same flags: -r, -y).
 
-with --recursive (-r), deletes the target and every branch downstream
-of it. refuses when the current branch is in the doomed set;
-` + "`gg upstream`" + ` out first.`,
-		Args:              cobra.RangeArgs(0, 1),
+defaults to file mode so the muscle-memory of unix ` + "`rm`" + ` and ` + "`git rm`" + `
+keeps working. -b is the explicit opt-in for branch operations,
+which avoids the silent-misclassification footgun of trying to guess
+whether an argument names a path or a branch.
+
+` + "`gg rm`" + ` is an alias of ` + "`gg delete`" + `; the two are identical.`,
+		Args:              cobra.MinimumNArgs(1),
 		RunE:              runDelete,
-		ValidArgsFunction: completeBranches(compOpts{ExcludeCurrent: true}),
+		ValidArgsFunction: completeDeleteArgs,
 	}
+	cmd.Flags().BoolP("branch", "b", false, "delete a branch instead of files")
 	cmd.Flags().
-		BoolP("recursive", "r", false, "recursively delete every branch downstream of the target")
-	cmd.Flags().BoolP("yes", "y", false, "skip the confirmation prompt")
+		BoolP("recursive", "r", false, "recursive — for files: descend into dirs; for branches: with -b, delete the subtree")
+	cmd.Flags().BoolP("force", "f", false, "force — for files: override `git rm`'s safety checks")
+	cmd.Flags().BoolP("yes", "y", false, "skip the confirmation prompt (branch mode only)")
+	cmd.Flags().Bool("cached", false, "drop from the index only; leave the working-tree file alone")
 	return cmd
 }
 
 func runDelete(cmd *cobra.Command, args []string) error {
 	if repo == nil {
 		return ctxResolutionErr
+	}
+	if branch, _ := cmd.Flags().GetBool("branch"); branch {
+		return runDeleteBranch(cmd, args)
+	}
+	return runDeleteFiles(cmd, args)
+}
+
+// runDeleteFiles is the file-mode body — passthrough to `git rm` with
+// the flags relevant to file removal.
+func runDeleteFiles(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("file mode: at least one path is required")
+	}
+	gitArgs := []string{"rm"}
+	if v, _ := cmd.Flags().GetBool("recursive"); v {
+		gitArgs = append(gitArgs, "-r")
+	}
+	if v, _ := cmd.Flags().GetBool("force"); v {
+		gitArgs = append(gitArgs, "-f")
+	}
+	if v, _ := cmd.Flags().GetBool("cached"); v {
+		gitArgs = append(gitArgs, "--cached")
+	}
+	gitArgs = append(gitArgs, "--")
+	gitArgs = append(gitArgs, args...)
+	return gitx.In(cwd).Cmd(gitArgs...).Pipe().Run()
+}
+
+// runDeleteBranch is the branch-mode body — picker on no-arg, exact
+// match on one arg, recursive subtree on -r. Identical behavior to the
+// pre-consolidation `gg delete`.
+func runDeleteBranch(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 {
+		return fmt.Errorf("branch mode: pass exactly one branch name (or none, to open the picker)")
 	}
 	var name string
 	if len(args) == 1 {
@@ -79,6 +120,19 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	// delete, which has already committed locally.
 	_ = refreshOpenPRFooters()
 	return nil
+}
+
+// completeDeleteArgs picks completion candidates by mode: branches
+// excluding the current one when -b is set, otherwise tracked paths.
+func completeDeleteArgs(
+	cmd *cobra.Command,
+	args []string,
+	toComplete string,
+) ([]string, cobra.ShellCompDirective) {
+	if branch, _ := cmd.Flags().GetBool("branch"); branch {
+		return completeBranches(compOpts{ExcludeCurrent: true})(cmd, args, toComplete)
+	}
+	return completeTrackedPaths(cmd, args, toComplete)
 }
 
 // deleteOne removes a single branch, reparenting its children onto its parent.

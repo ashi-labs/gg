@@ -14,7 +14,7 @@ func TestRename(t *testing.T) {
 	faPath := filepath.Join(e.work, "demo", "feat-a")
 	e.ggMust(faPath, "append", "feat-a-1")
 
-	newPath := e.ggMust(faPath, "rename", "feat-x")
+	newPath := e.ggMust(faPath, "rename", "-b", "feat-x")
 	if !strings.HasSuffix(newPath, "feat-x") {
 		t.Errorf("renamed path = %q", newPath)
 	}
@@ -41,7 +41,7 @@ func TestDeleteLeaf(t *testing.T) {
 	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
 	fbPath := e.ggMust(primary, "new", "feat-b")
 
-	if _, err := e.gg(primary, "delete", "--yes", "feat-b"); err != nil {
+	if _, err := e.gg(primary, "delete", "-b", "--yes", "feat-b"); err != nil {
 		t.Fatal(err)
 	}
 	if e.exists(fbPath) {
@@ -62,7 +62,7 @@ func TestDeleteReparentsChildren(t *testing.T) {
 	e.ggMust(faPath, "append", "feat-a-1")
 
 	// Delete feat-a from the primary worktree (not inside feat-a).
-	if _, err := e.gg(primary, "delete", "--yes", "feat-a"); err != nil {
+	if _, err := e.gg(primary, "delete", "-b", "--yes", "feat-a"); err != nil {
 		t.Fatal(err)
 	}
 	// feat-a-1 should now appear directly under main.
@@ -80,7 +80,7 @@ func TestDeleteRefusesCurrent(t *testing.T) {
 	e := newEnv(t)
 	primary := e.ggMust(e.work, "clone", e.upstream, "demo")
 	faPath := e.ggMust(primary, "append", "feat-a")
-	if _, err := e.gg(faPath, "delete", "feat-a"); err == nil {
+	if _, err := e.gg(faPath, "delete", "-b", "feat-a"); err == nil {
 		t.Error("delete should refuse deleting the branch you're in")
 	}
 }
