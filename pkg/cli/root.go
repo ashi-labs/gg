@@ -79,7 +79,7 @@ func commandGroups() []commandGroup {
 		{groupCommits, groupCommits, []*cobra.Command{
 			newStatusCmd(), newLogCmd(), newDiffCmd(),
 			newAddCmd(), newCommitCmd(), newAmendCmd(),
-			newStashCmd(),
+			newStashCmd(), newResetCmd(),
 		}},
 		{groupStacks, groupStacks, []*cobra.Command{
 			newNewCmd(), newAppendCmd(), newFoldCmd(),
