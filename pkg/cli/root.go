@@ -59,6 +59,7 @@ func Execute() {
 		newFirstCmd(),
 		newLastCmd(),
 		newTrunkCmd(),
+		newStatusCmd(),
 		newSyncCmd(),
 		newRestackCmd(),
 		newContinueCmd(),

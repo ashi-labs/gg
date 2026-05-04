@@ -190,7 +190,7 @@ func runLog(cmd *cobra.Command, args []string) error {
 	all, _ := cmd.Flags().GetBool("all")
 	prefetch, _ := cmd.Flags().GetBool("prefetch")
 	noCache, _ := cmd.Flags().GetBool("no-cache")
-	columns := resolveLogColumns(cfg.LogColumns)
+	columns := resolveLogColumns(cfg.Log.Columns)
 	wantsPR := false
 	for _, c := range columns {
 		if c.name == config.LogColumnPR {
@@ -224,7 +224,7 @@ func runLog(cmd *cobra.Command, args []string) error {
 		for n, c := range latestCommits {
 			sortByRecency[n] = c.UnixTimestamp
 		}
-		commitLinesByBranch = fetchCommitLines(branches, cfg.LogCommitsPerBranch, style.Stdout)
+		commitLinesByBranch = fetchCommitLines(branches, cfg.Log.CommitsPerBranch, style.Stdout)
 	}
 
 	lineage := stack.Build(repo.Trunk, branches)
@@ -353,14 +353,14 @@ func filterToStack(trunk, focus string, branches []state.Branch) ([]state.Branch
 // without waiting for the TTL to lapse. A negative or zero TTL in config
 // also disables the cache wholesale.
 func loadFreshPRStatuses(cfg config.Config, noCache bool) map[string]forge.PRStatus {
-	if noCache || cfg.PRCacheTTLSeconds <= 0 || bare == "" {
+	if noCache || cfg.PR.CacheTTLSeconds <= 0 || bare == "" {
 		return nil
 	}
 	c, err := state.LoadPRCache(bare)
 	if err != nil {
 		return nil
 	}
-	ttl := time.Duration(cfg.PRCacheTTLSeconds) * time.Second
+	ttl := time.Duration(cfg.PR.CacheTTLSeconds) * time.Second
 	if !c.IsFresh(ttl) {
 		return nil
 	}

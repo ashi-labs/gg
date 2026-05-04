@@ -9,6 +9,7 @@ import (
 
 type GlyphSet struct {
 	Name          string
+	File          string
 	Repo          string
 	Trunk         string
 	Branch        string
@@ -36,6 +37,7 @@ type PRGlyphSet struct {
 
 var unicode = GlyphSet{
 	Name:          config.GlyphsUnicode,
+	File:          "ƒ",
 	Trunk:         "●",
 	Branch:        "○",
 	CurrentBranch: "●",
@@ -60,6 +62,7 @@ var unicode = GlyphSet{
 
 var nerd = GlyphSet{
 	Name:          config.GlyphsNerd,
+	File:          "",
 	Trunk:         "", // nf-dev-git_branch
 	Branch:        "○",
 	CurrentBranch: "●",
@@ -99,7 +102,7 @@ var Glyphs = resolveGlyphs()
 func resolveGlyphs() GlyphSet {
 	name := os.Getenv("GG_GLYPHS")
 	if name == "" {
-		name = config.Load().Glyphs
+		name = config.Load().UI.Glyphs
 	}
 	switch name {
 	case config.GlyphsUnicode:

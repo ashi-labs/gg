@@ -39,7 +39,7 @@ func runRepos(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no repos tracked yet (run `gg clone <url>` or `gg init`)")
 	}
 	cfg := config.Load()
-	sortKey := cfg.SortReposBy
+	sortKey := cfg.Repos.SortBy
 	if v, _ := cmd.Flags().GetString("sort"); v != "" {
 		if !slices.Contains(config.ValidReposSort, v) {
 			return fmt.Errorf(

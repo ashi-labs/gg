@@ -174,7 +174,7 @@ func appendBranchWorktree(branch, parent string, opts newBranchOpts) error {
 // success line is printed only when at least one path was seeded so the
 // common case (repo has no seeds installed yet) stays quiet.
 func seedFromParent(parent, dst string) {
-	paths := config.Load().SeedPaths
+	paths := config.Load().Seed.Paths
 	if len(paths) == 0 {
 		return
 	}

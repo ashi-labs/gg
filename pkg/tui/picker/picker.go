@@ -31,7 +31,7 @@ import (
 // default. Unknown values fall back with a one-line stderr warning so
 // typos don't silently revert to the default.
 func resolveAlign() string {
-	v := config.Load().PromptLocation
+	v := config.Load().Prompt.Location
 	switch v {
 	case config.PromptLocationTop, config.PromptLocationBottom:
 		return v
