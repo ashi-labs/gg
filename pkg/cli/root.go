@@ -41,6 +41,7 @@ func Execute() {
 	root.AddCommand(
 		newInitCmd(),
 		newCloneCmd(),
+		newAddCmd(),
 		newAppendCmd(),
 		newCommitCmd(),
 		newNewCmd(),
