@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Cut a release for gg
+#
+# Usage:  scripts/release vX.Y.Z[-rcN]
+# Example: scripts/release v0.1.0
+#          scripts/release v0.1.0-rc1
+#
+# What it does:
+#   1. Validates the version arg looks like a semver tag.
+#   2. Refuses to run on a dirty working tree, off the main branch, or
+#      when the tag already exists locally or on origin.
+#   3. Smoke-builds the tree to catch a broken main before tagging.
+#   4. Creates an annotated tag and (after explicit confirmation) pushes
+#      it to origin, which triggers .github/workflows/release.yml. The
+#      workflow builds darwin/linux amd64+arm64 tarballs, computes
+#      checksums, and publishes a GitHub release.
+#
+# After the push, follow the workflow run with `gh run watch` (if `gh`
+# is installed) or visit the Actions tab in the browser.
+
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: scripts/release vX.Y.Z[-rcN]" >&2
+  exit 64
+fi
+
+version="$1"
+
+# Strict semver-ish: vMAJOR.MINOR.PATCH with optional -rcN suffix. Pre-1.0
+# release-candidates are common; arbitrary build metadata is not.
+if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$ ]]; then
+  echo "error: version must look like vX.Y.Z or vX.Y.Z-rcN (got: $version)" >&2
+  exit 64
+fi
+
+# Always operate from the repo root regardless of cwd, so contributors
+# can invoke this from anywhere inside their worktree.
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+main_branch="main"
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current_branch" != "$main_branch" ]]; then
+  echo "error: must be on $main_branch to release (currently on $current_branch)" >&2
+  exit 1
+fi
+
+# Refuse on a dirty tree. The release workflow stamps the binary with
+# tag+short-sha, so any uncommitted changes would silently NOT be in the
+# released artifacts even though they're "what HEAD looks like" today.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "error: working tree has uncommitted changes; commit or stash first" >&2
+  git status --short >&2
+  exit 1
+fi
+
+# Make sure local main is up to date with origin so we don't tag a SHA
+# that nobody else can fetch.
+git fetch --quiet origin "$main_branch"
+local_sha=$(git rev-parse "$main_branch")
+remote_sha=$(git rev-parse "origin/$main_branch")
+if [[ "$local_sha" != "$remote_sha" ]]; then
+  echo "error: local $main_branch ($local_sha) does not match origin/$main_branch ($remote_sha)" >&2
+  echo "       pull or push so they agree before tagging" >&2
+  exit 1
+fi
+
+# Tag must not already exist either locally or on origin — re-using a
+# tag would either fail to push or quietly point an existing release at
+# a different SHA, depending on which side won the race.
+if git rev-parse --verify --quiet "refs/tags/$version" >/dev/null; then
+  echo "error: tag $version already exists locally" >&2
+  exit 1
+fi
+git fetch --quiet origin "refs/tags/$version:refs/tags/__release_check_$version" 2>/dev/null || true
+if git rev-parse --verify --quiet "refs/tags/__release_check_$version" >/dev/null; then
+  git tag -d "__release_check_$version" >/dev/null
+  echo "error: tag $version already exists on origin" >&2
+  exit 1
+fi
+
+# Smoke-build to catch a broken tree before we tag. The release workflow
+# would catch this too, but failing here saves a wasted CI run and an
+# orphan tag pointing at a SHA that won't release cleanly.
+echo "==> smoke build"
+go build ./...
+
+# Show what's being released so the human can sanity-check the SHA and
+# the most-recent commits before the irreversible tag push.
+short_sha=$(git rev-parse --short=8 HEAD)
+echo
+echo "About to release: $version  (HEAD = $short_sha on $main_branch)"
+echo "Recent commits:"
+git log --oneline -5
+echo
+read -r -p "Tag and push? [y/N] " confirm
+case "$confirm" in
+[yY] | [yY][eE][sS]) ;;
+*)
+  echo "aborted (no tag created)"
+  exit 1
+  ;;
+esac
+
+git tag -a "$version" -m "$version"
+echo "==> created local tag $version"
+
+# Pushing the tag is what fires the release workflow. The workflow's
+# `on: push: tags: [v*]` matches both vX.Y.Z and vX.Y.Z-rcN.
+git push origin "refs/tags/$version"
+echo "==> pushed $version to origin"
+
+cat <<EOF
+
+Release workflow is now running.
+
+Watch it:           gh run watch
+Or in the browser:  https://github.com/$(git config --get remote.origin.url | sed -E 's#.*[:/]([^/]+/[^/]+)(\.git)?$#\1#')/actions
+
+The workflow will:
+  - build darwin/linux amd64+arm64 tarballs stamped with $version+$short_sha
+  - compute SHA-256 checksums
+  - create a GitHub release with auto-generated notes and attach the artifacts
+EOF

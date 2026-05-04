@@ -1,0 +1,30 @@
+package cli
+
+import (
+	"github.com/ashi-labs/gg/pkg/sync"
+	"github.com/spf13/cobra"
+)
+
+func newAbortCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "abort",
+		Short: "Abort a paused sync/restack and reset every branch to its pre-sync SHA.",
+		Args:  cobra.NoArgs,
+		RunE:  runAbort,
+	}
+}
+
+func runAbort(cmd *cobra.Command, args []string) error {
+	if repo == nil {
+		return ctxResolutionErr
+	}
+	if err := sync.Abort(sync.Repo{
+		PrimaryWorktree: repo.PrimaryWorktree,
+		Trunk:           repo.Trunk,
+		BareDir:         bare,
+	}); err != nil {
+		return err
+	}
+	successf("aborted")
+	return nil
+}

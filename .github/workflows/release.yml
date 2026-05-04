@@ -1,0 +1,94 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+# Lock both jobs to a single actor. github.actor is the user who
+# triggered the workflow run (the pusher of the tag, here), evaluated
+# by GitHub before any step executes. github.repository_owner would be
+# wrong for this — it's whoever owns the repo the workflow runs in,
+# which is always `andrewjmcgehee` for any push to this repo regardless
+# of who pushed. Forks are already safe (their workflow runs in the
+# fork's context, never touches upstream); the threat this gate handles
+# is "another collaborator pushes a v* tag I didn't authorize."
+jobs:
+  release:
+    if: github.actor == 'andrewjmcgehee'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -eu
+          tag="${GITHUB_REF_NAME}"
+          sha=$(git rev-parse --short=8 HEAD)
+          version="${tag}+${sha}"
+          base="gg_${version}_${GOOS}_${GOARCH}"
+          mkdir -p "dist/${base}"
+          go build \
+            -trimpath \
+            -ldflags "-s -w -X github.com/andrewjmcgehee/git-got/pkg/version.Version=${version}" \
+            -o "dist/${base}/gg" \
+            ./cmd/gg
+          tar -C dist -czf "dist/${base}.tar.gz" "${base}"
+          rm -rf "dist/${base}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gg-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    if: github.actor == 'andrewjmcgehee'
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          set -eu
+          cd dist
+          shasum -a 256 *.tar.gz > checksums.txt
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            dist/*.tar.gz dist/checksums.txt

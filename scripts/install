@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+sha=$(git rev-parse --short HEAD)
+if tag=$(git describe --tags --exact-match HEAD 2>/dev/null); then
+  version="${tag}+${sha}"
+else
+  version="dev+${sha}"
+fi
+if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+  version="${version}-dirty"
+fi
+
+go install \
+  -ldflags "-X github.com/ashi-labs/gg/pkg/version.Version=${version}" \
+  -tags debug \
+  ./cmd/gg
