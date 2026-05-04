@@ -27,7 +27,8 @@ func newSyncCmd() *cobra.Command {
 		RunE: runSync,
 	}
 	cmd.Flags().Bool("no-fetch", false, "skip fetching from origin")
-	cmd.Flags().Bool("repo", false, "sync every stack in the repo (default is just the current stack)")
+	cmd.Flags().
+		Bool("repo", false, "sync every stack in the repo (default is just the current stack)")
 	cmd.Flags().Bool("all", false, "sync every tracked repo (implies --repo for each)")
 	return cmd
 }
@@ -72,7 +73,11 @@ func runSyncOne(noFetch bool, scope sync.Scope) error {
 		hop = h
 		return err
 	}
-	if err := runSyncWithProgress(sync.RunOpts{NoFetch: noFetch, Scope: scope}, title, preRebase); err != nil {
+	if err := runSyncWithProgress(
+		sync.RunOpts{NoFetch: noFetch, Scope: scope},
+		title,
+		preRebase,
+	); err != nil {
 		return err
 	}
 	if err := refreshOpenPRFooters(); err != nil {
@@ -279,6 +284,23 @@ func pruneMergedBranches(emit func(sync.Event) error, suspend ttySuspender) (str
 			}
 			if mergedTip != "" {
 				_ = state.UpdateParentSHA(bare, kid, mergedTip)
+			}
+			// GitHub's auto-retarget only fires when delete-on-merge is
+			// configured AND the deletion is recognized as PR-merge-related.
+			// gg can't depend on either, so explicitly point any kid PR at
+			// the merged branch's parent (now the kid's new local parent).
+			// Best-effort: a failure here shouldn't abort the prune, since
+			// the local stack is still made coherent and the user can
+			// retarget by hand if needed.
+			kidBranch := l.ByName[kid]
+			if kidBranch.PRNumber > 0 {
+				if err := gitx.Forge.SetPRBaseBranch(
+					repo.PrimaryWorktree,
+					kidBranch.PRNumber,
+					b.Parent,
+				); err != nil {
+					errorf("failed to retarget PR #%d to %s: %v", kidBranch.PRNumber, b.Parent, err)
+				}
 			}
 		}
 		// Confirm per branch in the order we reach them. Wrap in

@@ -84,6 +84,17 @@ func (xGitHub) EditPRBody(worktree string, num int, body string) error {
 	return nil
 }
 
+func (xGitHub) SetPRBaseBranch(worktree string, num int, base string) error {
+	cmd := exec.Command("gh", "pr", "edit", strconv.Itoa(num), "--base", base)
+	cmd.Dir = worktree
+	var errBuf bytes.Buffer
+	cmd.Stderr = &errBuf
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("gh pr edit %d --base %s: %v\n%s", num, base, err, errBuf.String())
+	}
+	return nil
+}
+
 func (xGitHub) GetPRBaseBranch(worktree string, num int) (string, error) {
 	cmd := exec.Command(
 		"gh",
