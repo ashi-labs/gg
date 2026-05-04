@@ -68,3 +68,18 @@ func (p *pathSuggester) suggest(worktreeRelPath string) string {
 	}
 	return p.typedDir + rel
 }
+
+// trackedPathLines runs `git ls-files` and returns the raw worktree-rel
+// paths it emits. Used by completers that should suggest tracked
+// content (blame, future grep) rather than dirty content (add, restore).
+func trackedPathLines(workdir string) ([]string, error) {
+	raw, err := gitx.In(workdir).Cmd("ls-files", "--cached", "-z").Bytes()
+	if err != nil {
+		return nil, err
+	}
+	body := strings.TrimRight(string(raw), "\x00")
+	if body == "" {
+		return nil, nil
+	}
+	return strings.Split(body, "\x00"), nil
+}
