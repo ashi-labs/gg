@@ -65,9 +65,9 @@ func TestAddAllStagesEverything(t *testing.T) {
 	mustExec(t, e.c, primary, "git", "add", "doomed.txt")
 	mustExec(t, e.c, primary, "git", "commit", "-m", "seed-doomed")
 
-	e.writeFile(filepath.Join(primary, "README.md"), "modified\n")            // modified
-	mustExec(t, e.c, primary, "rm", filepath.Join(primary, "doomed.txt"))    // deleted
-	e.writeFile(filepath.Join(primary, "fresh.txt"), "fresh\n")               // untracked
+	e.writeFile(filepath.Join(primary, "README.md"), "modified\n")        // modified
+	mustExec(t, e.c, primary, "rm", filepath.Join(primary, "doomed.txt")) // deleted
+	e.writeFile(filepath.Join(primary, "fresh.txt"), "fresh\n")           // untracked
 
 	if _, err := e.gg(primary, "add", "-a"); err != nil {
 		t.Fatal(err)

@@ -44,6 +44,7 @@ func Execute() {
 		newAddCmd(),
 		newAppendCmd(),
 		newCommitCmd(),
+		newDiffCmd(),
 		newNewCmd(),
 		newCheckoutCmd(),
 		newLogCmd(),
