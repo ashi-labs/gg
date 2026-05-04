@@ -247,13 +247,13 @@ func renderAheadBehindBlock(l stack.Lineage, current string, sc config.StatusCon
 	wantTrunk := sc.AheadBehindAgainst == config.StatusAheadBehindTrunk ||
 		sc.AheadBehindAgainst == config.StatusAheadBehindBoth
 	parts := []string{style.Stdout.Badge.Render("ahead-behind")}
-	if wantParent {
-		if line := aheadBehindRow(parent, current, false); line != "" {
+	if wantTrunk && parent != repo.Trunk {
+		if line := aheadBehindRow(repo.Trunk, current, true); line != "" {
 			parts = append(parts, line)
 		}
 	}
-	if wantTrunk && parent != repo.Trunk {
-		if line := aheadBehindRow(repo.Trunk, current, true); line != "" {
+	if wantParent {
+		if line := aheadBehindRow(parent, current, false); line != "" {
 			parts = append(parts, line)
 		}
 	}
@@ -279,7 +279,7 @@ func aheadBehindRow(left, right string, trunkStyle bool) string {
 		glyph = style.Stdout.Branch.Render(style.Glyphs.Branch)
 		name = style.Stdout.Branch.Render(left)
 	}
-	return fmt.Sprintf("  %s %s  %s", glyph, name, count)
+	return fmt.Sprintf("  %s %s is %s", glyph, name, count)
 }
 
 // aheadBehindPhrase renders just the count phrase ("in sync", "3
@@ -293,12 +293,12 @@ func aheadBehindPhrase(left, right string) string {
 	case ahead == 0 && behind == 0:
 		return style.Stdout.Success.Render("in sync")
 	case ahead == 0:
-		return style.Stdout.Dirty.Render(fmt.Sprintf("%d behind", behind))
+		return fmt.Sprintf("%d behind", behind)
 	case behind == 0:
-		return fmt.Sprintf("%d ahead", ahead)
+		return style.Stdout.Dirty.Render(fmt.Sprintf("%d ahead", ahead))
 	default:
-		return style.Stdout.Dirty.Render(fmt.Sprintf("%d behind", behind)) +
-			" · " + fmt.Sprintf("%d ahead", ahead)
+		return style.Stdout.Dirty.Render(fmt.Sprintf("%d ahead", ahead)) +
+			" · " + fmt.Sprintf("%d behind", behind)
 	}
 }
 
@@ -313,7 +313,7 @@ func renderWorkingTreeBlock() string {
 		return ""
 	}
 	var staged, unstaged, untracked []string
-	for _, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(raw), "\n"), "\n") {
 		if len(line) < 4 {
 			continue
 		}
