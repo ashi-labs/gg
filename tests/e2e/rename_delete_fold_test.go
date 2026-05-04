@@ -99,7 +99,7 @@ func TestDeleteRecursiveRemovesSubtree(t *testing.T) {
 	fbPath := e.ggMust(primary, "new", "feat-b")
 
 	// From primary (not inside the doomed subtree), wipe feat-a + downstream.
-	if _, err := e.gg(primary, "rm", "-r", "--yes", "feat-a"); err != nil {
+	if _, err := e.gg(primary, "rm", "-rb", "--yes", "feat-a"); err != nil {
 		t.Fatal(err)
 	}
 	for _, p := range []string{faPath, a1Path, a2Path} {
@@ -132,7 +132,7 @@ func TestDeleteRecursiveRefusesFromInside(t *testing.T) {
 	a1Path := filepath.Join(e.work, "demo", "feat-a-1")
 
 	// Sitting inside feat-a-1, try to delete feat-a's subtree. Refuses.
-	_, err := e.gg(a1Path, "rm", "--recursive", "feat-a")
+	_, err := e.gg(a1Path, "rm", "--recursive", "--branch", "feat-a")
 	if err == nil {
 		t.Fatal("delete --recursive from inside the subtree should refuse")
 	}

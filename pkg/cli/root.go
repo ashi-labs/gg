@@ -79,8 +79,8 @@ func commandGroups() []commandGroup {
 		{groupCommits, groupCommits, []*cobra.Command{
 			newStatusCmd(), newLogCmd(), newDiffCmd(),
 			newAddCmd(), newCommitCmd(), newAmendCmd(),
-			newStashCmd(), newResetCmd(),
-			newBlameCmd(),
+			newStashCmd(), newResetCmd(), newBlameCmd(),
+			newRmCmd(), newMvCmd(),
 		}},
 		{groupStacks, groupStacks, []*cobra.Command{
 			newNewCmd(), newAppendCmd(), newFoldCmd(),

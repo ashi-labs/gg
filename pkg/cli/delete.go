@@ -14,9 +14,8 @@ import (
 
 func newDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "delete [branch]",
-		Aliases: []string{"rm"},
-		Short:   "remove a branch and its worktree; reparent children onto the parent.",
+		Use:   "delete [branch]",
+		Short: "remove a branch and its worktree; reparent children onto the parent.",
 		Long: `with no argument, opens a picker listing tracked branches (excluding
 the current one, which can't be deleted while standing in it).
 
