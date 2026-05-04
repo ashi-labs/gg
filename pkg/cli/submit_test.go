@@ -73,14 +73,14 @@ func TestIsTitleBodySeparator(t *testing.T) {
 		{"--- ", true},
 		{"---\t", true},
 		{"---  \t  ", true},
-		{"----", false},   // four dashes
-		{"--", false},     // two dashes
-		{" ---", false},   // leading space — strict
-		{"\t---", false},  // leading tab — strict
-		{"--- a", false},  // extra content
-		{"a---", false},   // prefix
-		{"", false},       // empty
-		{"---\n", false},  // separator carries the trailing newline AFTER strings.Split, so the line is "---"; this case verifies a literal embedded \n is a no-match
+		{"----", false},  // four dashes
+		{"--", false},    // two dashes
+		{" ---", false},  // leading space — strict
+		{"\t---", false}, // leading tab — strict
+		{"--- a", false}, // extra content
+		{"a---", false},  // prefix
+		{"", false},      // empty
+		{"---\n", false}, // separator carries the trailing newline AFTER strings.Split, so the line is "---"; this case verifies a literal embedded \n is a no-match
 	}
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {

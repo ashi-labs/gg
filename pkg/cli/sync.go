@@ -8,6 +8,7 @@ import (
 	"github.com/ashi-labs/gg/pkg/config"
 	"github.com/ashi-labs/gg/pkg/gitx"
 	"github.com/ashi-labs/gg/pkg/gitx/forge"
+	"github.com/ashi-labs/gg/pkg/registry"
 	"github.com/ashi-labs/gg/pkg/stack"
 	"github.com/ashi-labs/gg/pkg/state"
 	"github.com/ashi-labs/gg/pkg/sync"
@@ -18,44 +19,126 @@ func newSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "sync",
 		Aliases: []string{"s"},
-		Short:   "Fetch trunk from origin and restack every branch in the repo.",
-		Args:    cobra.NoArgs,
-		RunE:    runSync,
+		Short:   "Fetch trunk from origin and restack the current stack.",
+		Long: "Fetch trunk from origin, then rebase the stack containing the current branch.\n" +
+			"Use --repo to rebase every stack in this repo, or --all to do that for every\n" +
+			"tracked repo. Pruning of merged PRs and PR-footer refresh always run repo-wide.",
+		Args: cobra.NoArgs,
+		RunE: runSync,
 	}
 	cmd.Flags().Bool("no-fetch", false, "skip fetching from origin")
+	cmd.Flags().Bool("repo", false, "sync every stack in the repo (default is just the current stack)")
+	cmd.Flags().Bool("all", false, "sync every tracked repo (implies --repo for each)")
 	return cmd
 }
 
 func runSync(cmd *cobra.Command, args []string) error {
+	noFetch, _ := cmd.Flags().GetBool("no-fetch")
+	wholeRepo, _ := cmd.Flags().GetBool("repo")
+	allRepos, _ := cmd.Flags().GetBool("all")
+	if wholeRepo && allRepos {
+		return fmt.Errorf("--repo and --all are mutually exclusive")
+	}
+	if allRepos {
+		return runSyncAll(noFetch)
+	}
 	if repo == nil {
 		return ctxResolutionErr
 	}
-	noFetch, _ := cmd.Flags().GetBool("no-fetch")
+	scope := sync.Scope{}
+	if !wholeRepo {
+		current, err := gitx.Revision.CurrentBranch(cwd)
+		if err != nil {
+			return err
+		}
+		// On trunk (or detached / untracked) we want fetch+ff and tidy
+		// pruning, but no rebase plan. StackOf returns nil for trunk and
+		// for any name not in the lineage, so the engine produces an
+		// empty plan automatically.
+		scope.StackOf = current
+	}
+	return runSyncOne(noFetch, scope)
+}
 
-	// hop captures the worktree the shell wrapper should `cd` into when
-	// the user was standing in a now-pruned merged branch. Populated by
-	// the preRebase callback below; emitted to stdout post-Run.
+// runSyncOne drives a single sync against the currently-resolved repo
+// (globals: bare, repo, cwd). Always runs the merged-PR prune and PR
+// footer refresh repo-wide regardless of scope — the user's preference
+// is to keep "tidy" behavior global.
+func runSyncOne(noFetch bool, scope sync.Scope) error {
 	var hop string
-	title := "syncing " + repo.ShortName()
+	title := syncTitle(scope)
 	preRebase := func(emit func(sync.Event) error, suspend ttySuspender) error {
 		h, err := preSyncPrune(emit, suspend)
 		hop = h
 		return err
 	}
-	if err := runSyncWithProgress(sync.RunOpts{NoFetch: noFetch}, title, preRebase); err != nil {
+	if err := runSyncWithProgress(sync.RunOpts{NoFetch: noFetch, Scope: scope}, title, preRebase); err != nil {
 		return err
 	}
-
-	// Footer refresh stays post-sync so renames/lineage shifts that
-	// happened during the rebase get reflected in the PR bodies.
 	if err := refreshOpenPRFooters(); err != nil {
 		return err
 	}
-
 	if hop != "" {
 		stdout(hop)
 	}
 	return nil
+}
+
+func syncTitle(scope sync.Scope) string {
+	if scope.StackOf == "" {
+		return "syncing " + repo.ShortName()
+	}
+	return fmt.Sprintf("syncing %s · %s", repo.ShortName(), scope.StackOf)
+}
+
+// runSyncAll iterates every tracked, valid repo in the registry and runs
+// a whole-repo sync against each. Stops on the first failure so the user
+// can `cd` into the repo and run `gg continue` / `gg abort`. UI is
+// sequential — one progress block per repo, sharing the same stderr.
+func runSyncAll(noFetch bool) error {
+	entries, err := registry.Load()
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("no repos tracked yet (run `gg clone <url>` or `gg init`)")
+	}
+	// Stable, predictable order — name ascending. registry.Load returns
+	// LastUsed-sorted, which is fine for `gg repos` but unhelpful for
+	// "sweep everything" since the order shifts every invocation.
+	sort.SliceStable(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+	for _, e := range entries {
+		if e.Validate() != registry.StatusOK {
+			hintf("skipping %s (%s)", e.Name, statusLabel(e))
+			continue
+		}
+		if err := withRepoCtx(e, func() error {
+			return runSyncOne(noFetch, sync.Scope{})
+		}); err != nil {
+			return fmt.Errorf("%s: %w", e.Name, err)
+		}
+	}
+	return nil
+}
+
+// withRepoCtx temporarily swaps the package-global repo context (cwd,
+// bare, repo, gitx.Forge) to point at e, runs fn, then restores. Used by
+// --all to drive the existing per-repo sync code without threading new
+// parameters through every helper.
+func withRepoCtx(e registry.Entry, fn func() error) error {
+	savedCwd, savedBare, savedRepo, savedForge := cwd, bare, repo, gitx.Forge
+	defer func() { cwd, bare, repo, gitx.Forge = savedCwd, savedBare, savedRepo, savedForge }()
+	r, err := state.LoadRepo(e.Bare)
+	if err != nil {
+		return err
+	}
+	cwd = e.PrimaryWorktree
+	bare = e.Bare
+	repo = &r
+	gitx.Forge = forge.Select(r.Origin)
+	return fn()
 }
 
 // preSyncPrune detects PRs that were merged on the forge and removes their
