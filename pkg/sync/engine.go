@@ -25,6 +25,11 @@ type Repo struct {
 
 type RunOpts struct {
 	NoFetch bool
+	// Scope optionally restricts the rebase plan. Empty Scope means "every
+	// branch in the repo" (whole-repo sync). Pruning and footer refresh
+	// run globally regardless of Scope — they're handled outside the
+	// engine via OnEvent.
+	Scope Scope
 	// OnEvent receives every progress event the engine emits. Returning a
 	// non-nil error aborts the run — handlers use this to inject work
 	// between phases (e.g. pruning forge-merged branches on EventFetchDone
@@ -32,6 +37,17 @@ type RunOpts struct {
 	// work back to the engine. nil-safe: a missing callback is replaced
 	// with a no-op.
 	OnEvent func(Event) error
+}
+
+// Scope narrows which branches the engine includes in the rebase plan.
+// Zero-valued Scope means whole repo.
+type Scope struct {
+	// StackOf, if set, restricts the plan to the stack containing this
+	// branch (same semantics as stack.Lineage.StackOf — the connected
+	// subtree rooted at a child of trunk). Branches outside that subtree
+	// are skipped. If the named branch is trunk or untracked, the plan is
+	// empty.
+	StackOf string
 }
 
 type EventKind int
@@ -97,7 +113,7 @@ func Run(repo Repo, opts RunOpts) error {
 		return err
 	}
 	l := stack.Build(repo.Trunk, branches)
-	order := l.Topological()
+	order := scopedOrder(l, opts.Scope)
 	if err := emit(Event{Kind: EventPlan, Branches: order}); err != nil {
 		return err
 	}
@@ -111,6 +127,7 @@ func Run(repo Repo, opts RunOpts) error {
 	rs := &RunState{
 		Kind:      kindFor(opts),
 		Trunk:     repo.Trunk,
+		Scope:     opts.Scope,
 		Snapshots: snapshots,
 		Remaining: order,
 	}
@@ -299,6 +316,32 @@ func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
 		rs.Remaining = rs.Remaining[1:]
 	}
 	return Clear(repo.BareDir)
+}
+
+// scopedOrder returns the topological rebase plan, optionally filtered to a
+// single stack. With an empty Scope it's just l.Topological(). With
+// Scope.StackOf set, branches outside that stack are dropped while parent-
+// before-child order is preserved.
+func scopedOrder(l stack.Lineage, scope Scope) []string {
+	order := l.Topological()
+	if scope.StackOf == "" {
+		return order
+	}
+	stackBranches := l.StackOf(scope.StackOf)
+	if len(stackBranches) == 0 {
+		return nil
+	}
+	keep := make(map[string]bool, len(stackBranches))
+	for _, n := range stackBranches {
+		keep[n] = true
+	}
+	filtered := make([]string, 0, len(stackBranches))
+	for _, n := range order {
+		if keep[n] {
+			filtered = append(filtered, n)
+		}
+	}
+	return filtered
 }
 
 func ensureClean(repo Repo, branches []state.Branch) error {

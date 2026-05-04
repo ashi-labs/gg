@@ -12,6 +12,7 @@ import (
 type RunState struct {
 	Kind               string            `json:"kind"` // "sync" or "restack"
 	Trunk              string            `json:"trunk"`
+	Scope              Scope             `json:"scope,omitzero"`
 	InProgressBranch   string            `json:"in_progress_branch,omitempty"`
 	InProgressWorktree string            `json:"in_progress_worktree,omitempty"`
 	Remaining          []string          `json:"remaining,omitempty"`
