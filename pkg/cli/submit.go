@@ -70,7 +70,9 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 	// entire stack would land identical titles on multiple PRs, which
 	// is almost never what the caller wants — flag it loudly.
 	if (titleFlag != "" || bodyFlagSet) && scope != stack.ScopeBranch {
-		return fmt.Errorf("--title/--body only apply when submitting a single branch (drop --all/--upstack/--downstack)")
+		return fmt.Errorf(
+			"--title/--body only apply when submitting a single branch (drop --all/--upstack/--downstack)",
+		)
 	}
 	// Pass 1: create any missing PRs in topological order so each child's
 	// parent branch is already on origin by the time gh creates its PR.
@@ -92,6 +94,35 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 			pushedCommits = true
 		}
 		if b.PRNumber > 0 {
+			// Reconcile the PR's base on GitHub against the local parent.
+			// Locally, parent can drift after a `gg sync` prune (parent
+			// merged, kid reparented onto grandparent), a `gg fold`, or a
+			// manual track move. Without this, the PR keeps targeting a
+			// branch that may not even exist anymore.
+			expectedBase := b.Parent
+			if expectedBase == "" {
+				expectedBase = repo.Trunk
+			}
+			if actualBase, err := gitx.Forge.GetPRBaseBranch(
+				b.Worktree,
+				b.PRNumber,
+			); err == nil &&
+				actualBase != expectedBase {
+				if err := gitx.Forge.SetPRBaseBranch(
+					b.Worktree,
+					b.PRNumber,
+					expectedBase,
+				); err != nil {
+					errorf("failed to retarget PR #%d to %s: %v", b.PRNumber, expectedBase, err)
+				} else {
+					successf(
+						"retargeted PR #%d: %s -> %s",
+						b.PRNumber,
+						styleBranch(actualBase),
+						styleBranch(expectedBase),
+					)
+				}
+			}
 			prs[name] = b.PRNumber
 			continue
 		}
@@ -127,7 +158,13 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 			}
 			seed = template
 			if scope == stack.ScopeBranch {
-				if newTitle, newBody, ok, eerr := editPRBody(title, seed, b.Worktree, base, name); eerr != nil {
+				if newTitle, newBody, ok, eerr := editPRBody(
+					title,
+					seed,
+					b.Worktree,
+					base,
+					name,
+				); eerr != nil {
 					return eerr
 				} else if ok {
 					title = newTitle
@@ -225,7 +262,9 @@ func topoFilter(l stack.Lineage, scope []string) []string {
 // the body. If the file has no `---` separator, the whole file is
 // treated as the body and the title falls back to seedTitle — handy
 // for "leave the title alone, just edit the body".
-func editPRBody(seedTitle, seedBody, worktree, parent, branch string) (string, string, bool, error) {
+func editPRBody(
+	seedTitle, seedBody, worktree, parent, branch string,
+) (string, string, bool, error) {
 	editor := os.Getenv("VISUAL")
 	if editor == "" {
 		editor = os.Getenv("EDITOR")
@@ -298,7 +337,10 @@ func editPRBody(seedTitle, seedBody, worktree, parent, branch string) (string, s
 	}
 	titleOut, bodyOut := splitTitleAndBody(stripScaffold(string(edited)))
 	if bodyOut == "" {
-		return seedTitle, seedBody, false, fmt.Errorf("body empty after edit; aborting submit for %s", branch)
+		return seedTitle, seedBody, false, fmt.Errorf(
+			"body empty after edit; aborting submit for %s",
+			branch,
+		)
 	}
 	if titleOut == "" {
 		titleOut = seedTitle

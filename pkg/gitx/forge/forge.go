@@ -23,6 +23,7 @@ type Forge interface {
 	GetPRBody(worktree string, num int) (string, error)
 	EditPRBody(worktree string, num int, body string) error
 	GetPRBaseBranch(worktree string, num int) (string, error)
+	SetPRBaseBranch(worktree string, num int, base string) error
 	GetPRStatus(worktree string, num int) (PRStatus, error)
 	PRTemplate(worktree string) (string, error)
 }
