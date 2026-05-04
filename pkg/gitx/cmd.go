@@ -121,7 +121,6 @@ func (c *Cmd) ExitCode() (int, error) {
 	return 0, nil
 }
 
-// aliase for Pipe().Err()
 func (c *Cmd) Run() error {
 	x := c.build()
 	if c.stdin != nil || c.pipe {
