@@ -104,7 +104,7 @@ func commandGroups() []commandGroup {
 		}},
 		{groupAdmin, groupAdmin, []*cobra.Command{
 			newInitCmd(), newCloneCmd(), newLinkCmd(),
-			newCleanupCmd(), newConfigCmd(), newShellCmd(), newVersionCmd(),
+			newCleanupCmd(), newConfigCmd(), newShellCmd(), newSkillCmd(), newVersionCmd(),
 		}},
 	}
 }
