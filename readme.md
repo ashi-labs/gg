@@ -18,6 +18,10 @@ verify `gg` is on path
 
 `which gg`
 
+view the cli help with
+
+`gg help`
+
 ## shell wrapper and completions
 
 `gg shell install <shell>` writes the wrapper (which lets `gg` cd you
@@ -64,3 +68,17 @@ gg shell install zsh --prefetch
 pass `--color=always|auto|never` to bake a color choice into every
 `gg` invocation the wrapper makes (handy if stderr isn't reliably a
 TTY in your shell, e.g. some multiplexers).
+
+## claude skill / codex prompt
+
+you can run
+
+`gg skill [claude|codex]`
+
+to output the claude skill / codex prompt contents to stdout. if you're ok with the output you can then save the skill / prompt via
+
+`gg skill [claude|codex] -w`
+
+for the claude skill it is saved into `$HOME/.claude/skills/gg/SKILL.md`
+
+for the codex prompt it is saved into `$HOME/.codex/prompts/gg.md` and accessed via `/gg`
