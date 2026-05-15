@@ -18,11 +18,7 @@ func runAbort(cmd *cobra.Command, args []string) error {
 	if repo == nil {
 		return ctxResolutionErr
 	}
-	if err := sync.Abort(sync.Repo{
-		PrimaryWorktree: repo.PrimaryWorktree,
-		Trunk:           repo.Trunk,
-		BareDir:         bare,
-	}); err != nil {
+	if err := sync.Abort(repo, bare); err != nil {
 		return err
 	}
 	successf("aborted")

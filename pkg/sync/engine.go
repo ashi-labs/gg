@@ -17,12 +17,6 @@ func delay() {
 	}
 }
 
-type Repo struct {
-	BareDir         string
-	Trunk           string
-	PrimaryWorktree string
-}
-
 type RunOpts struct {
 	NoFetch bool
 	// Scope optionally restricts the rebase plan. Empty Scope means "every
@@ -73,12 +67,12 @@ type Event struct {
 
 // performs a sync (fetch + ff + cascading restack) or just a restack
 // refuses if a previous sync needs `gg abort/continue`
-func Run(repo Repo, opts RunOpts) error {
+func Run(repo *state.Repo, bare string, opts RunOpts) error {
 	emit := opts.OnEvent
 	if emit == nil {
 		emit = func(Event) error { return nil }
 	}
-	if rs, _ := Load(repo.BareDir); rs != nil {
+	if rs, _ := Load(bare); rs != nil {
 		return fmt.Errorf(
 			"sync already in progress (paused on %s); use `gg continue` or `gg abort`",
 			rs.InProgressBranch,
@@ -96,7 +90,7 @@ func Run(repo Repo, opts RunOpts) error {
 			return err
 		}
 		delay() // fetch is usually fast — gives the fetch spinner air
-		if err := fetchAndFastForwardTrunk(repo); err != nil {
+		if err := fetchAndFastForwardTrunk(repo, bare); err != nil {
 			return err
 		}
 	}
@@ -108,7 +102,7 @@ func Run(repo Repo, opts RunOpts) error {
 	if err := emit(Event{Kind: EventFetchDone}); err != nil {
 		return err
 	}
-	branches, err := state.AllBranches(repo.BareDir)
+	branches, err := state.AllBranches(bare)
 	if err != nil {
 		return err
 	}
@@ -128,7 +122,7 @@ func Run(repo Repo, opts RunOpts) error {
 	if err := ensureClean(branchesByName(branches, order)); err != nil {
 		return err
 	}
-	snapshots, err := snapshotHeads(repo, order)
+	snapshots, err := snapshotHeads(repo, bare, order)
 	if err != nil {
 		return err
 	}
@@ -139,7 +133,7 @@ func Run(repo Repo, opts RunOpts) error {
 		Snapshots: snapshots,
 		Remaining: order,
 	}
-	return runPlan(repo, rs, emit)
+	return runPlan(repo, bare, rs, emit)
 }
 
 // Continue resumes a paused sync after the user resolved conflicts in
@@ -147,12 +141,12 @@ func Run(repo Repo, opts RunOpts) error {
 // drives `git rebase --continue` itself so the user doesn't need to.
 // Accepts the same Opts as Run so the CLI can plumb through its
 // progress callback.
-func Continue(repo Repo, opts RunOpts) error {
+func Continue(repo *state.Repo, bare string, opts RunOpts) error {
 	emit := opts.OnEvent
 	if emit == nil {
 		emit = func(Event) error { return nil }
 	}
-	rs, err := Load(repo.BareDir)
+	rs, err := Load(bare)
 	if err != nil {
 		return err
 	}
@@ -191,7 +185,7 @@ func Continue(repo Repo, opts RunOpts) error {
 	}
 
 	// The paused branch's own rebase finished. Record its new parent-sha.
-	b, err := state.LoadBranch(repo.BareDir, rs.InProgressBranch)
+	b, err := state.LoadBranch(bare, rs.InProgressBranch)
 	if err != nil {
 		return err
 	}
@@ -199,11 +193,11 @@ func Continue(repo Repo, opts RunOpts) error {
 	if parent == "" {
 		parent = repo.Trunk
 	}
-	parentNow, err := gitx.Revision.HeadSHA(repo.BareDir, parent)
+	parentNow, err := gitx.Revision.HeadSHA(bare, parent)
 	if err != nil {
 		return err
 	}
-	if err := state.UpdateParentSHA(repo.BareDir, rs.InProgressBranch, parentNow); err != nil {
+	if err := state.UpdateParentSHA(bare, rs.InProgressBranch, parentNow); err != nil {
 		return err
 	}
 
@@ -218,19 +212,21 @@ func Continue(repo Repo, opts RunOpts) error {
 	}
 	// Report the still-remaining work so the UI pre-populates rows.
 	if len(rs.Remaining) > 0 {
-		if err := emit(Event{Kind: EventPlan, Branches: append([]string(nil), rs.Remaining...)}); err != nil {
+		if err := emit(
+			Event{Kind: EventPlan, Branches: append([]string(nil), rs.Remaining...)},
+		); err != nil {
 			return err
 		}
 	}
 	rs.InProgressBranch = ""
 	rs.InProgressWorktree = ""
-	return runPlan(repo, rs, emit)
+	return runPlan(repo, bare, rs, emit)
 }
 
 // Abort aborts any in-flight rebase and resets every snapshotted branch to
 // its pre-sync SHA. Used to undo a partial sync.
-func Abort(repo Repo) error {
-	rs, err := Load(repo.BareDir)
+func Abort(repo *state.Repo, bare string) error {
+	rs, err := Load(bare)
 	if err != nil {
 		return err
 	}
@@ -243,7 +239,7 @@ func Abort(repo Repo) error {
 	for name, sha := range rs.Snapshots {
 		wt := repo.PrimaryWorktree
 		if name != repo.Trunk {
-			b, err := state.LoadBranch(repo.BareDir, name)
+			b, err := state.LoadBranch(bare, name)
 			if err != nil || b.Worktree == "" {
 				continue
 			}
@@ -251,17 +247,17 @@ func Abort(repo Repo) error {
 		}
 		_ = gitx.Reset.Hard(wt, sha)
 	}
-	return Clear(repo.BareDir)
+	return Clear(bare)
 }
 
 // runPlan iterates rs.Remaining, rebasing each branch onto its parent. On
 // failure (typically a merge conflict) it persists runstate and returns a
 // hint pointing the user at the paused worktree. The emit callback
 // receives per-branch progress events.
-func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
+func runPlan(repo *state.Repo, bare string, rs *RunState, emit func(Event) error) error {
 	for len(rs.Remaining) > 0 {
 		name := rs.Remaining[0]
-		b, err := state.LoadBranch(repo.BareDir, name)
+		b, err := state.LoadBranch(bare, name)
 		if err != nil {
 			return err
 		}
@@ -273,7 +269,7 @@ func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
 			rs.Remaining = rs.Remaining[1:]
 			continue
 		}
-		parentNow, err := gitx.Revision.HeadSHA(repo.BareDir, b.Parent)
+		parentNow, err := gitx.Revision.HeadSHA(bare, b.Parent)
 		if err != nil {
 			return err
 		}
@@ -301,7 +297,7 @@ func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
 			rs.InProgressBranch = name
 			rs.InProgressWorktree = b.Worktree
 			_ = emit(Event{Kind: EventBranchFailed, Branch: name, Err: err})
-			if saveErr := Save(repo.BareDir, rs); saveErr != nil {
+			if saveErr := Save(bare, rs); saveErr != nil {
 				return fmt.Errorf(
 					"rebase of %s failed AND saving runstate failed: %v / %w",
 					name,
@@ -315,7 +311,7 @@ func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
 				b.Worktree,
 			)
 		}
-		if err := state.UpdateParentSHA(repo.BareDir, name, parentNow); err != nil {
+		if err := state.UpdateParentSHA(bare, name, parentNow); err != nil {
 			return err
 		}
 		if err := emit(Event{Kind: EventBranchDone, Branch: name}); err != nil {
@@ -323,7 +319,7 @@ func runPlan(repo Repo, rs *RunState, emit func(Event) error) error {
 		}
 		rs.Remaining = rs.Remaining[1:]
 	}
-	return Clear(repo.BareDir)
+	return Clear(bare)
 }
 
 // scopedOrder returns the topological rebase plan, optionally filtered to a
@@ -355,7 +351,7 @@ func scopedOrder(l stack.Lineage, scope Scope) []string {
 // ensurePrimaryClean fails fast when the primary worktree (where trunk
 // lives) has uncommitted changes — `git merge --ff-only` would either
 // refuse or land confusingly mid-fetch otherwise.
-func ensurePrimaryClean(repo Repo) error {
+func ensurePrimaryClean(repo *state.Repo) error {
 	if repo.PrimaryWorktree == "" {
 		return nil
 	}
@@ -413,13 +409,13 @@ func branchesByName(all []state.Branch, names []string) []state.Branch {
 	return out
 }
 
-func fetchAndFastForwardTrunk(repo Repo) error {
-	if !gitx.Remote.Exists(repo.BareDir, "origin") {
+func fetchAndFastForwardTrunk(repo *state.Repo, bare string) error {
+	if !gitx.Remote.Exists(bare, "origin") {
 		// No remote configured — nothing to fetch from. This is valid for
 		// repos bootstrapped via `gg init` in an empty dir.
 		return nil
 	}
-	if err := gitx.Remote.FetchOrigin(repo.BareDir); err != nil {
+	if err := gitx.Remote.FetchOrigin(bare); err != nil {
 		return fmt.Errorf("fetch origin: %w", err)
 	}
 	if err := gitx.In(repo.PrimaryWorktree).
@@ -434,13 +430,13 @@ func fetchAndFastForwardTrunk(repo Repo) error {
 	return nil
 }
 
-func snapshotHeads(repo Repo, order []string) (map[string]string, error) {
+func snapshotHeads(repo *state.Repo, bare string, order []string) (map[string]string, error) {
 	snapshots := map[string]string{}
-	if sha, err := gitx.Revision.HeadSHA(repo.BareDir, repo.Trunk); err == nil {
+	if sha, err := gitx.Revision.HeadSHA(bare, repo.Trunk); err == nil {
 		snapshots[repo.Trunk] = sha
 	}
 	for _, n := range order {
-		sha, err := gitx.Revision.HeadSHA(repo.BareDir, n)
+		sha, err := gitx.Revision.HeadSHA(bare, n)
 		if err != nil {
 			return nil, fmt.Errorf("reading head for %s: %w", n, err)
 		}

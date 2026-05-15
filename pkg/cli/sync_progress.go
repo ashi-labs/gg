@@ -109,14 +109,7 @@ func runSyncWithProgress(opts sync.RunOpts, title string, preRebase preRebaseHoo
 			return nil
 		}
 		opts.OnEvent = emit
-		runErr = sync.Run(
-			sync.Repo{
-				PrimaryWorktree: repo.PrimaryWorktree,
-				Trunk:           repo.Trunk,
-				BareDir:         bare,
-			},
-			opts,
-		)
+		runErr = sync.Run(repo, bare, opts)
 		p.Send(syncDoneMsg{err: runErr})
 	}()
 	if _, err := p.Run(); err != nil {
@@ -141,14 +134,7 @@ func runContinueWithProgress(opts sync.RunOpts, title string) error {
 			p.Send(syncMsg(e))
 			return nil
 		}
-		runErr = sync.Continue(
-			sync.Repo{
-				PrimaryWorktree: repo.PrimaryWorktree,
-				Trunk:           repo.Trunk,
-				BareDir:         bare,
-			},
-			opts,
-		)
+		runErr = sync.Continue(repo, bare, opts)
 		p.Send(syncDoneMsg{err: runErr})
 	}()
 	if _, err := p.Run(); err != nil {
@@ -194,11 +180,7 @@ func runContinuePlain(opts sync.RunOpts, title string) error {
 		}
 		return nil
 	}
-	err := sync.Continue(sync.Repo{
-		PrimaryWorktree: repo.PrimaryWorktree,
-		Trunk:           repo.Trunk,
-		BareDir:         bare,
-	}, opts)
+	err := sync.Continue(repo, bare, opts)
 	if err == nil {
 		successf("sync complete")
 	}
@@ -263,11 +245,7 @@ func runSyncPlain(opts sync.RunOpts, title string, preRebase preRebaseHook) erro
 		return nil
 	}
 	opts.OnEvent = emit
-	err := sync.Run(sync.Repo{
-		PrimaryWorktree: repo.PrimaryWorktree,
-		Trunk:           repo.Trunk,
-		BareDir:         bare,
-	}, opts)
+	err := sync.Run(repo, bare, opts)
 	if err == nil {
 		successf("sync complete")
 	}

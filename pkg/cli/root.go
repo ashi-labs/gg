@@ -8,11 +8,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	groupCommits    = "commits"
+	groupStacks     = "stacks"
+	groupNavigation = "navigation"
+	groupState      = "state"
+	groupRemotes    = "remotes"
+	groupConflicts  = "conflicts"
+	groupAdmin      = "admin"
+)
+
 var (
 	cwd              string
 	bare             string
 	repo             *state.Repo
 	ctxResolutionErr error
+	debugCommands    []*cobra.Command
 	root             = &cobra.Command{
 		Use:           "gg",
 		Short:         "the gooder cli for stacked-pr + worktree-per-branch git workflows",
@@ -25,14 +36,10 @@ var (
 			return nil
 		},
 	}
-	debugCommands []*cobra.Command
 )
 
 func init() {
 	root.SetHelpFunc(styledHelpFunc)
-	// Override cobra's auto-injected `help` command so its Short matches
-	// the lowercase house style. SetHelpCommand also disables cobra's
-	// default help command and replaces it with this one.
 	root.SetHelpCommand(&cobra.Command{
 		Use:   "help [command]",
 		Short: "help for any command",
@@ -42,34 +49,14 @@ func init() {
 				c.Root().Help() //nolint:errcheck
 				return
 			}
-			cmd.InitDefaultHelpFlag() //nolint:errcheck
+			cmd.InitDefaultHelpFlag()
 			cmd.HelpFunc()(cmd, args)
 		},
 	})
-	// Hide cobra's auto-injected `completion` subcommand. Completion
-	// scripts are still reachable via the GenZshCompletion / GenBashCompletion
-	// / GenFishCompletion methods that `gg shell install` calls — we just
-	// don't want a parallel user-facing surface to confuse "how do I install".
+	// hide cobra's auto-injected `completion` subcommand.
 	root.CompletionOptions.HiddenDefaultCmd = true
 }
 
-// Group IDs / titles. IDs are stable string keys cobra uses to assign
-// commands to groups; titles are what `gg --help` renders. Both
-// lowercase by convention. Order here is the order groups print in.
-const (
-	groupState      = "state"
-	groupCommits    = "commits"
-	groupStacks     = "stacks"
-	groupNavigation = "navigation"
-	groupRemotes    = "remotes"
-	groupConflicts  = "conflicts"
-	groupAdmin      = "admin"
-)
-
-// commandGroups defines the gg command taxonomy in render order. New
-// commands should be added to the most user-intent-matching group; if
-// nothing fits, prefer adding a new group over a stray (cobra would
-// otherwise bucket it under "additional").
 type commandGroup struct {
 	id, title string
 	cmds      []*cobra.Command
