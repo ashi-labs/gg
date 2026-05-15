@@ -73,6 +73,7 @@ func commandGroups() []commandGroup {
 			newNewCmd(), newAppendCmd(), newFoldCmd(),
 			newRenameCmd(), newDeleteCmd(),
 			newTrackCmd(), newUntrackCmd(), newRestackCmd(),
+			newReparentCmd(),
 		}},
 		{groupNavigation, groupNavigation, []*cobra.Command{
 			newCdCmd(), newCheckoutCmd(),

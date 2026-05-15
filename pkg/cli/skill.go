@@ -133,6 +133,7 @@ stack shape:
   gg append <name>       new branch off current
   gg rename <new>        rename current branch (and its worktree)
   gg delete <branch>     delete branch + worktree
+  gg reparent <parent>   move current branch (and descendants) onto a new parent
   gg track / untrack     bring an existing branch under gg / let it go
   gg restack             rebase the stack after main has moved
 

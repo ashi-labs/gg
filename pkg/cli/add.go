@@ -84,7 +84,7 @@ func completeStageablePaths(
 	// which eats the leading space on entries like " M path"
 	// (unstaged-modified) when they're the first line of output, chopping
 	// one char off the path.
-	for _, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(raw), "\n"), "\n") {
 		// Porcelain v1 format: "XY␠path" (XY is two status chars). Rename
 		// entries embed " -> " between old and new path; for staging
 		// purposes the new path is what we want.
