@@ -22,6 +22,77 @@ view the cli help with
 
 `gg help`
 
+## common workflows
+
+every command has `gg <cmd> --help` for the full story. short names in parenthesis are aliases.
+
+### start a repo
+
+```
+gg clone <url> [name]   # clone a remote into a gg-managed repo and cd in
+gg init                 # turn the current directory (empty, files, or a git clone) into a gg repo
+gg link                 # re-bind a gg repo after you've moved it on disk
+```
+
+### build a stack
+
+each branch gets its own worktree, so there's no stashing needed to switch work.
+
+```
+gg new <branch>         # (n) new branch + worktree off trunk
+gg append <branch>      # (a) new branch + worktree stacked on the current one
+gg add <paths>          # stage paths in the current worktree
+gg commit -m "msg"      # (c) commit staged changes; -a stages tracked files first
+gg amend                # amend the tip commit and restack descendants
+gg restack              # (rs) rebase the whole stack onto its parents
+```
+
+quick path: create a branch and commit everything in one shot —
+
+```
+gg new fix-typo -am "fix typo"     # stage all + commit on a fresh branch off trunk; if this fails for any reason, changes are stashed
+gg append add-tests -am "tests"    # ...then stack the next branch on top
+```
+
+### navigate
+
+```
+gg cd [repo[:branch[:path]]]   # interactive cross-repo picker, or jump straight to a target
+gg checkout [branch]           # (co) repo-scoped picker / jump
+gg up [n]                      # (upstream) move n steps toward trunk (parent)
+gg down [n]                    # (downstream) move n steps toward the leaf (child)
+gg first / gg last             # (1 / N) jump to the base / tip of the current stack
+gg trunk                       # (0) jump to trunk
+gg repos                       # pick a tracked repo and cd to its primary worktree
+gg log                         # (ls) show the stack tree; -a expands commits inline
+gg status                      # (stat) where am i + what needs attention
+gg diff [branch]               # (d) working tree vs head; --parent vs stack parent
+```
+
+### prs & sync
+
+```
+gg submit                 # open/refresh the PR for the current branch
+gg submit --all           # submit every branch in the stack
+gg submit --downstack     # current branch + ancestors (--upstack for descendants)
+gg submit --draft         # open PRs in draft state
+gg sync                   # (s) fetch trunk, rebase the current stack, prune merged PRs
+gg sync --repo            # rebase every stack in this repo (--all for every repo)
+gg fold                   # squash the current branch into its parent, reparent children
+gg delete -b <branch>     # (rm) delete a branch + its worktree (-r for the subtree); without -b operates as `git rm`
+```
+
+if a sync or restack pauses on a conflict, resolve it then —
+
+```
+gg continue   # resume after staging the resolution
+gg abort      # bail out and reset every branch to its pre-sync sha
+```
+
+### simple demo video
+
+TODO
+
 ## shell wrapper and completions
 
 `gg shell install <shell>` writes the wrapper (which lets `gg` cd you
