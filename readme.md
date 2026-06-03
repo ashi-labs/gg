@@ -10,9 +10,9 @@ intended to replace graphite `gt` and worktrunk `wt` for me
 
 ## setup
 
-in terminal (assuming you have access to the repo)
+in terminal
 
-`GOPRIVATE=github.com/ashi-labs/gg go install github.com/ashi-labs/gg/cmd/gg@latest`
+`go install github.com/ashi-labs/gg/cmd/gg@latest`
 
 verify `gg` is on path
 
