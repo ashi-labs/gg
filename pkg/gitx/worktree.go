@@ -2,6 +2,7 @@ package gitx
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -26,8 +27,42 @@ func (xWorktree) Move(bareDir, oldPath, newPath string) error {
 	return In(bareDir).Cmd(kWorktree, kMove, oldPath, newPath).Err()
 }
 
-func (xWorktree) Remove(bareDir, path string) error {
-	return In(bareDir).Cmd(kWorktree, kRemove, flagForce, path).Err()
+// Remove deletes the worktree at path and prunes its admin metadata.
+func (w xWorktree) Remove(bareDir, path string) error {
+	if err := In(bareDir).Cmd(kWorktree, kRemove, flagForce, path).Err(); err == nil {
+		return nil
+	}
+	// cow sets file permissions to 0555 so sometimes remove fails because of
+	// seeded files like .env. this force removes the dir and appropriately updates
+	// the gg state
+	rmErr := forceRemoveDir(path)
+	_ = w.Prune(bareDir)
+	if rmErr != nil {
+		return fmt.Errorf("force-removing worktree dir %s: %w", path, rmErr)
+	}
+	return nil
+}
+
+func forceRemoveDir(path string) error {
+	if path == "" {
+		return nil
+	}
+	_ = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			_ = os.Chmod(p, 0o700)
+		}
+		return nil
+	})
+	return os.RemoveAll(path)
+}
+
+// Prune drops admin entries for worktrees whose directory is gone or
+// invalid. Exposed for callers that remove a worktree dir out-of-band.
+func (xWorktree) Prune(bareDir string) error {
+	return In(bareDir).Cmd(kWorktree, kPrune).Err()
 }
 
 func (xWorktree) Repair(bareDir string) error {

@@ -27,6 +27,7 @@ const (
 	kMove        = "move"
 	kOrigin      = "origin"
 	kPop         = "pop" // lmao... kpop
+	kPrune       = "prune"
 	kPush        = "push"
 	kRebase      = "rebase"
 	kRebaseApply = "rebase-apply"

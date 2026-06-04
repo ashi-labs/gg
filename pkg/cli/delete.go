@@ -236,7 +236,11 @@ func removeBranch(b state.Branch, skipConfirm bool, renderOutput bool) error {
 	}
 	if b.Worktree != "" {
 		if err := gitx.Worktree.Remove(bare, b.Worktree); err != nil {
-			return fmt.Errorf("removing worktree %s: %w", b.Worktree, err)
+			errorf(
+				"worktree dir %s could not be fully removed (%v) — remove it by hand",
+				b.Worktree,
+				err,
+			)
 		}
 	}
 	if err := gitx.Branch.Delete(bare, b.Name); err != nil {
